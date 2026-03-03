@@ -1,0 +1,22 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: padel_postgres
+    environment:
+      POSTGRES_DB: padel_manager
+      POSTGRES_USER: postgres        # user admin, uniquement pour init
+      POSTGRES_PASSWORD: postgres_admin
+    ports:
+      - "5432:5432"                  # port_machine:port_container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data   # données persistantes
+      - ./backend/src/main/resources/db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
