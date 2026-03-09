@@ -11,7 +11,6 @@ services:
       - "5432:5432"                  # port_machine:port_container
     volumes:
       - postgres_data:/var/lib/postgresql/data   # données persistantes
-      - ./backend/src/main/resources/db/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
