@@ -21,7 +21,7 @@ public class Participation {
 
     @ManyToOne
     @JoinColumn(name="matricule")
-    private Membre matricule;
+    private Membre membre;
 
     @Column(name = "statut")
     private String statut;

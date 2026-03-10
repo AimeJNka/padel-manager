@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Data
 public class FermeturePonctuelleDTO {
-    private Integer idFermeturePonctuel;
+    private Integer idFermeturePonctuelle;
     private SiteDTO site;
     private LocalDate dateFermeture;
     private String motif;

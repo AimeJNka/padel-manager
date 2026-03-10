@@ -7,9 +7,9 @@ import java.time.LocalDateTime;
 
 @Data
 public class DisponibiliteDTO {
-    private Integer idDisponibilite;
+    private Integer idDispo;
     private TerrainDTO terrain;
-    private LocalDateTime heureDebut;
-    private LocalDateTime heureFin;
+    private LocalDateTime dateHeureDebut;
+    private LocalDateTime dateHeureFin;
     private String statut;
 }

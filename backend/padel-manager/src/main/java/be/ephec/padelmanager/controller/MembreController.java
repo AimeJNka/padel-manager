@@ -1,18 +1,16 @@
 package be.ephec.padelmanager.controller;
 
 import be.ephec.padelmanager.DTO.MembreDTO;
-import be.ephec.padelmanager.service.Impl.MembreService;
+import be.ephec.padelmanager.service.IMembreService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/membres")
 @RequiredArgsConstructor
 public class MembreController {
 
-    private final MembreService membreService;
+    private final IMembreService membreService;
 
 //    @GetMapping
 //    public ResponseEntity<List<MembreDTO>> getAll() {

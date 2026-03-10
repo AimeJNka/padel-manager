@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class MatchPadelDTO {
     private Integer idMatch;
     private DisponibiliteDTO disponibilite;
-    private MembreDTO membre;
+    private MembreDTO organisateur;
     private String typeMatch;
     private String statut;
     private BigDecimal montantTotal;
