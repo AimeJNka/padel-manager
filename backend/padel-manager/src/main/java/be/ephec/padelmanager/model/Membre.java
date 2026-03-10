@@ -14,6 +14,18 @@ public class Membre {
     @Column(name = "matricule")
     private String matricule;
 
+    @ManyToOne
+    @JoinColumn(name = "id_personne")
+    private Personne personne;
+
+    @ManyToOne
+    @JoinColumn(name="id_type")
+    private TypeMembre typeMembre;
+
+    @ManyToOne
+    @JoinColumn(name="id_site")
+    private Site site;
+
     @Column(name = "mot_de_passe")
     private String motDePasse;
 
@@ -23,12 +35,5 @@ public class Membre {
     @Column(name = "solde_du")
     private BigDecimal soldeDu;
 
-    @Column(name = "id_personne")
-    private Integer idPersonne;
 
-    @Column(name = "id_type")
-    private Integer idType;
-
-    @Column(name = "id_site")
-    private Integer idSite;
 }
