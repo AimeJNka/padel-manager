@@ -16,13 +16,13 @@ public class MatchPadel {
     @Column(name = "id_match")
     private Integer idMatch;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name="id_dispo")
     private Disponibilite disponibilite;
 
     @ManyToOne
     @JoinColumn(name="matricule_organisateur")
-    private Membre matriculeOrganisateur;
+    private Membre organisateur;
 
     @Column(name= "type_match")
     private String typeMatch;

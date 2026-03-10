@@ -16,7 +16,7 @@ public class Paiement {
     @Column(name = "id_paiement")
     private Integer idPaiement;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name="id_participation")
     private Participation participation;
 

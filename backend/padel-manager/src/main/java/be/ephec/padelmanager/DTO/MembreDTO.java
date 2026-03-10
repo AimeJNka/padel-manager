@@ -8,9 +8,9 @@ import java.time.LocalDate;
 @Data
 public class MembreDTO {
     private String matricule;
-    private PersonneDTO Personne;
+    private PersonneDTO personne;
     private TypeMembreDTO typeMembre;
-    private SiteDTO Site;
+    private SiteDTO site;
     private LocalDate dateInscription;
     private BigDecimal soldeDu;
 }

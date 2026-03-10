@@ -17,7 +17,7 @@ public class Penalite {
 
     @ManyToOne
     @JoinColumn(name="matricule")
-    private Membre matricule;
+    private Membre membre;
 
     @Column(name = "date_debut")
     private LocalDateTime dateDebut;

@@ -14,7 +14,7 @@ public class TypeMembre {
     @Column(name = "id_type")
     private Integer idType;
 
-    @Column(name = "prefixe")
+    @Column(name = "prefixe", columnDefinition = "bpchar")
     private String prefixe;
 
     @Column(name = "libelle")
