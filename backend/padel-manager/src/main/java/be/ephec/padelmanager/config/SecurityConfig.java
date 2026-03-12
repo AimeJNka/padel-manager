@@ -34,6 +34,11 @@ public class SecurityConfig {
                             response.setContentType("application/json");
                             response.getWriter().write("{\"error\": \"Non authentifié\"}");
                         })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(403);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"Accès refusé\"}");
+                        })
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 

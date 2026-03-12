@@ -1,10 +1,10 @@
 package be.ephec.padelmanager.controller;
 
-import be.ephec.padelmanager.DTO.auth.AuthResponseDTO;
-import be.ephec.padelmanager.DTO.auth.LoginDTO;
-import be.ephec.padelmanager.DTO.auth.RefreshRequestDTO;
-import be.ephec.padelmanager.DTO.auth.RefreshResponseDTO;
-import be.ephec.padelmanager.DTO.auth.RegisterDTO;
+import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
+import be.ephec.padelmanager.dto.auth.LoginDTO;
+import be.ephec.padelmanager.dto.auth.RefreshRequestDTO;
+import be.ephec.padelmanager.dto.auth.RefreshResponseDTO;
+import be.ephec.padelmanager.dto.auth.RegisterDTO;
 import be.ephec.padelmanager.service.IAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

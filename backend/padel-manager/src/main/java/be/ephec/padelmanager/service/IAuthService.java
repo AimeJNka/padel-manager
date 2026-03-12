@@ -1,9 +1,9 @@
 package be.ephec.padelmanager.service;
 
-import be.ephec.padelmanager.DTO.auth.AuthResponseDTO;
-import be.ephec.padelmanager.DTO.auth.LoginDTO;
-import be.ephec.padelmanager.DTO.auth.RefreshResponseDTO;
-import be.ephec.padelmanager.DTO.auth.RegisterDTO;
+import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
+import be.ephec.padelmanager.dto.auth.LoginDTO;
+import be.ephec.padelmanager.dto.auth.RefreshResponseDTO;
+import be.ephec.padelmanager.dto.auth.RegisterDTO;
 
 public interface IAuthService {
     AuthResponseDTO login(LoginDTO dto);

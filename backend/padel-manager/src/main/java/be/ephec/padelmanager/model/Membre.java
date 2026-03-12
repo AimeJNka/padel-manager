@@ -1,15 +1,20 @@
 package be.ephec.padelmanager.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "membre")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Membre {
 
+    @EqualsAndHashCode.Include
     @Id
     @Column(name = "matricule")
     private String matricule;

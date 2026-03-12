@@ -1,7 +1,7 @@
 package be.ephec.padelmanager.repository;
 
 import be.ephec.padelmanager.model.Terrain;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TerrainRepo extends CrudRepository<Terrain, Integer> {
+public interface TerrainRepo extends JpaRepository<Terrain, Integer> {
 }
