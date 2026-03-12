@@ -39,19 +39,19 @@ INSERT INTO personne (email, nom, prenom) VALUES
                                               ('site@test.be',   'Martin', 'Sophie'),
                                               ('libre@test.be',  'Durand', 'Marc');
 
--- Membres de test (mots de passe = "password" hashé BCrypt)
+-- Membres de test (mots de passe = "password" hashé BCrypt via Spring BCryptPasswordEncoder)
 INSERT INTO membre (matricule, id_personne, id_type, id_site, mot_de_passe)
 VALUES
     ('G0001', 1, 1, NULL,
-     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
+     '$2a$10$CE/5N7xjBSNk4rKatgISp.abpfU4zqjWdf.uybvzxOqOrACNyb15u'),
     ('S0001', 2, 2, 1,
-     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
+     '$2a$10$CE/5N7xjBSNk4rKatgISp.abpfU4zqjWdf.uybvzxOqOrACNyb15u'),
     ('L0001', 3, 3, NULL,
-     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+     '$2a$10$CE/5N7xjBSNk4rKatgISp.abpfU4zqjWdf.uybvzxOqOrACNyb15u');
 
 -- Admin global de test
 INSERT INTO administrateur (email, nom, prenom, mot_de_passe, role, id_site)
 VALUES
     ('admin@padel.be', 'Admin', 'Global',
-     '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+     '$2a$10$CE/5N7xjBSNk4rKatgISp.abpfU4zqjWdf.uybvzxOqOrACNyb15u',
      'ADMIN_GLOBAL', NULL);

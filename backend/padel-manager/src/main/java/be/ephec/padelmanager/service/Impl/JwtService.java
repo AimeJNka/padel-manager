@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.service.Impl;
 
 import be.ephec.padelmanager.service.IJwtService;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -20,9 +21,10 @@ public class JwtService implements IJwtService {
     private long expiration;
 
     @Override
-    public String generateToken(String matricule) {
+    public String generateToken(String matricule, String role) {
         return Jwts.builder()
                 .subject(matricule)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
@@ -31,24 +33,26 @@ public class JwtService implements IJwtService {
 
     @Override
     public String extractMatricule(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        return extractAllClaims(token).getSubject();
+    }
+
+    @Override
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 
     @Override
     public boolean isTokenValide(String token, String matricule) {
-        String extractedMatricule = extractMatricule(token);
-        Date expirationDate = Jwts.parser()
+        Claims claims = extractAllClaims(token);
+        return claims.getSubject().equals(matricule) && claims.getExpiration().after(new Date());
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
                 .parseSignedClaims(token)
-                .getPayload()
-                .getExpiration();
-        return extractedMatricule.equals(matricule) && expirationDate.after(new Date());
+                .getPayload();
     }
 
     private SecretKey getSigningKey() {

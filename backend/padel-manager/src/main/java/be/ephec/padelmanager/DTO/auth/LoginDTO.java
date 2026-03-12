@@ -1,4 +1,4 @@
-package be.ephec.padelmanager.DTO;
+package be.ephec.padelmanager.DTO.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
