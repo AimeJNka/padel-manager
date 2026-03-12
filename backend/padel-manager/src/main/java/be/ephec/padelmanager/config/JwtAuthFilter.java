@@ -40,6 +40,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (matricule != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (jwtService.isTokenValide(token, matricule)) {
                     String role = jwtService.extractRole(token);
+                    if (role == null) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     List<SimpleGrantedAuthority> authorities = List.of(
                             new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())
                     );
@@ -49,8 +53,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (io.jsonwebtoken.JwtException e) {
-            // Token invalide ou expiré — Spring Security retournera 401
+        } catch (Exception e) {
+            // Token invalide, expiré ou malformé — Spring Security retournera 401
         }
 
         filterChain.doFilter(request, response);

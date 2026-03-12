@@ -1,7 +1,7 @@
 package be.ephec.padelmanager.repository;
 
 import be.ephec.padelmanager.model.Participation;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ParticipationRepo extends CrudRepository<Participation, Integer> {
+public interface ParticipationRepo extends JpaRepository<Participation, Integer> {
 }
