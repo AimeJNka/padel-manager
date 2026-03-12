@@ -4,16 +4,12 @@ services:
     image: postgres:16
     container_name: padel_postgres
     env_file: backend/padel-manager/.env
-    environment:
-      POSTGRES_DB: padel_manager
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"                  # port_machine:port_container
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data   # données persistantes
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
