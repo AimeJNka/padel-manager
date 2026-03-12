@@ -1,6 +1,6 @@
 package be.ephec.padelmanager.controller;
 
-import be.ephec.padelmanager.DTO.MembreDTO;
+import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.service.IMembreService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
