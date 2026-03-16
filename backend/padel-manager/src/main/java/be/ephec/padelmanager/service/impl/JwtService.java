@@ -21,18 +21,26 @@ public class JwtService implements IJwtService {
     private long expiration;
 
     @Override
-    public String generateToken(String matricule, String role) {
-        return Jwts.builder()
-                .subject(matricule)
-                .claim("role", role)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
-                .compact();
+    public String generateToken(String subject, String role) {
+        return generateToken(subject, role, null);
     }
 
     @Override
-    public String extractMatricule(String token) {
+    public String generateToken(String subject, String role, Integer idSite) {
+        var builder = Jwts.builder()
+                .subject(subject)
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey());
+        if (idSite != null) {
+            builder.claim("idSite", idSite);
+        }
+        return builder.compact();
+    }
+
+    @Override
+    public String extractSubject(String token) {
         return extractAllClaims(token).getSubject();
     }
 
@@ -42,9 +50,14 @@ public class JwtService implements IJwtService {
     }
 
     @Override
-    public boolean isTokenValide(String token, String matricule) {
+    public Integer extractIdSite(String token) {
+        return extractAllClaims(token).get("idSite", Integer.class);
+    }
+
+    @Override
+    public boolean isTokenValide(String token, String subject) {
         Claims claims = extractAllClaims(token);
-        return claims.getSubject().equals(matricule) && claims.getExpiration().after(new Date());
+        return claims.getSubject().equals(subject) && claims.getExpiration().after(new Date());
     }
 
     private Claims extractAllClaims(String token) {

@@ -1,8 +1,10 @@
 package be.ephec.padelmanager.service;
 
 public interface IJwtService {
-    String generateToken(String matricule, String role);
-    String extractMatricule(String token);
+    String generateToken(String subject, String role);
+    String generateToken(String subject, String role, Integer idSite);
+    String extractSubject(String token);
     String extractRole(String token);
-    boolean isTokenValide(String token, String matricule);
+    Integer extractIdSite(String token);
+    boolean isTokenValide(String token, String subject);
 }

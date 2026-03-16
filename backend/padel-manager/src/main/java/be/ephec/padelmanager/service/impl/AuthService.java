@@ -1,14 +1,18 @@
 package be.ephec.padelmanager.service.impl;
 
+import be.ephec.padelmanager.dto.auth.AdminAuthResponseDTO;
+import be.ephec.padelmanager.dto.auth.AdminLoginDTO;
 import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
 import be.ephec.padelmanager.dto.auth.LoginDTO;
 import be.ephec.padelmanager.dto.auth.RefreshResponseDTO;
 import be.ephec.padelmanager.dto.RefreshTokenDTO;
 import be.ephec.padelmanager.dto.auth.RegisterDTO;
+import be.ephec.padelmanager.model.Admin;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.model.TypeMembre;
+import be.ephec.padelmanager.repository.AdminRepo;
 import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PersonneRepo;
 import be.ephec.padelmanager.repository.SiteRepo;
@@ -34,6 +38,7 @@ public class AuthService implements IAuthService {
     private final PersonneRepo personneRepo;
     private final SiteRepo siteRepo;
     private final TypeMembreRepo typeMembreRepo;
+    private final AdminRepo adminRepo;
     private final IJwtService jwtService;
     private final IRefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
@@ -102,6 +107,27 @@ public class AuthService implements IAuthService {
         response.setRefreshToken(refreshToken.getToken());
         response.setMatricule(matricule);
         response.setRole(role);
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public AdminAuthResponseDTO adminLogin(AdminLoginDTO dto) {
+        Admin admin = adminRepo.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new UnauthorizedException("Email ou mot de passe incorrect"));
+
+        if (!passwordEncoder.matches(dto.getMotDePasse(), admin.getMotDePasse())) {
+            throw new UnauthorizedException("Email ou mot de passe incorrect");
+        }
+
+        Integer idSite = admin.getSite() != null ? admin.getSite().getIdSite() : null;
+        String accessToken = jwtService.generateToken(
+                String.valueOf(admin.getIdAdmin()), admin.getRole(), idSite);
+
+        AdminAuthResponseDTO response = new AdminAuthResponseDTO();
+        response.setAccessToken(accessToken);
+        response.setIdAdmin(admin.getIdAdmin());
+        response.setRole(admin.getRole());
         return response;
     }
 
