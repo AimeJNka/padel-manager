@@ -1,5 +1,7 @@
 package be.ephec.padelmanager.controller;
 
+import be.ephec.padelmanager.dto.auth.AdminAuthResponseDTO;
+import be.ephec.padelmanager.dto.auth.AdminLoginDTO;
 import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
 import be.ephec.padelmanager.dto.auth.LoginDTO;
 import be.ephec.padelmanager.dto.auth.RefreshRequestDTO;
@@ -31,6 +33,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(dto));
     }
 
+    @PostMapping("/admin/login")
+    public ResponseEntity<AdminAuthResponseDTO> adminLogin(@Valid @RequestBody AdminLoginDTO dto) {
+        return ResponseEntity.ok(authService.adminLogin(dto));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<RefreshResponseDTO> refresh(@Valid @RequestBody RefreshRequestDTO dto) {
         return ResponseEntity.ok(authService.refreshToken(dto.getRefreshToken()));
@@ -38,8 +45,12 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(Authentication authentication) {
-        String matricule = (String) authentication.getPrincipal();
-        authService.logout(matricule);
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().startsWith("ROLE_ADMIN"));
+        if (!isAdmin) {
+            String matricule = (String) authentication.getPrincipal();
+            authService.logout(matricule);
+        }
         return ResponseEntity.ok(Map.of("message", "Déconnexion réussie"));
     }
 }

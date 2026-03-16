@@ -2,6 +2,7 @@ package be.ephec.padelmanager.config;
 
 import be.ephec.padelmanager.exception.BadRequestException;
 import be.ephec.padelmanager.exception.ConflictException;
+import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.exception.UnauthorizedException;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUnauthorized(UnauthorizedException e) {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", e.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<Map<String, String>> handleForbidden(ForbiddenException e) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", e.getMessage()));
     }
 

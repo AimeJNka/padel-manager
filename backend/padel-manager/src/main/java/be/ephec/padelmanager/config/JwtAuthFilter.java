@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -35,26 +37,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-            String matricule = jwtService.extractMatricule(token);
+            String subject = jwtService.extractSubject(token);
 
-            if (matricule != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                if (jwtService.isTokenValide(token, matricule)) {
+            if (subject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtService.isTokenValide(token, subject)) {
                     String role = jwtService.extractRole(token);
                     if (role == null) {
                         filterChain.doFilter(request, response);
                         return;
                     }
                     List<SimpleGrantedAuthority> authorities = List.of(
-                            new SimpleGrantedAuthority("ROLE_" + role.toUpperCase())
+                            new SimpleGrantedAuthority(Role.valueOf(role.toUpperCase()).authority())
                     );
 
                     UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(matricule, null, authorities);
+                            new UsernamePasswordAuthenticationToken(subject, null, authorities);
+                    authToken.setDetails(jwtService.extractIdSite(token));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
-            // Token invalide, expiré ou malformé — Spring Security retournera 401
+            log.debug("JWT authentication failed: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);
