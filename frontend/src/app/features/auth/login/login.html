@@ -1,0 +1,98 @@
+<div class="auth-container">
+
+  <mat-card class="auth-card">
+    <mat-card-header>
+      <mat-card-title>Connexion</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      <mat-tab-group (selectedIndexChange)="switchMode($event === 1)" animationDuration="0">
+        <mat-tab label="Membre"></mat-tab>
+        <mat-tab label="Administrateur"></mat-tab>
+      </mat-tab-group>
+
+      @if (!isAdminMode()) {
+        <form [formGroup]="memberForm" (ngSubmit)="onSubmit()">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Matricule</mat-label>
+            <input matInput formControlName="matricule" />
+            @if (memberForm.controls.matricule.hasError('required') &&
+                 memberForm.controls.matricule.touched) {
+              <mat-error>Le matricule est requis.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Mot de passe</mat-label>
+            <input matInput type="password" formControlName="motDePasse" />
+            @if (memberForm.controls.motDePasse.hasError('required') &&
+                 memberForm.controls.motDePasse.touched) {
+              <mat-error>Le mot de passe est requis.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (errorMessage()) {
+            <p class="error-text">{{ errorMessage() }}</p>
+          }
+
+          <button mat-raised-button color="primary" type="submit" class="full-width"
+                  [disabled]="isLoading()">
+            @if (isLoading()) {
+              Connexion en cours...
+            } @else {
+              Se connecter
+            }
+          </button>
+        </form>
+      }
+
+      @if (isAdminMode()) {
+        <form [formGroup]="adminForm" (ngSubmit)="onSubmit()">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input matInput type="email" formControlName="email" />
+            @if (adminForm.controls.email.hasError('required') &&
+                 adminForm.controls.email.touched) {
+              <mat-error>L'email est requis.</mat-error>
+            }
+            @if (adminForm.controls.email.hasError('email') &&
+                 adminForm.controls.email.touched) {
+              <mat-error>Format d'email invalide.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Mot de passe</mat-label>
+            <input matInput type="password" formControlName="motDePasse" />
+            @if (adminForm.controls.motDePasse.hasError('required') &&
+                 adminForm.controls.motDePasse.touched) {
+              <mat-error>Le mot de passe est requis.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (errorMessage()) {
+            <p class="error-text">{{ errorMessage() }}</p>
+          }
+
+          <button mat-raised-button color="primary" type="submit" class="full-width"
+                  [disabled]="isLoading()">
+            @if (isLoading()) {
+              Connexion en cours...
+            } @else {
+              Se connecter
+            }
+          </button>
+        </form>
+      }
+
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <a mat-button routerLink="/register">Pas encore inscrit ? S'inscrire</a>
+    </mat-card-actions>
+  </mat-card>
+
+</div>
