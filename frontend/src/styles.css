@@ -1,4 +1,66 @@
-/* You can add global styles to this file, and also import other style files */
+/* ==========================================================================
+   GLOBAL STYLES
+   ==========================================================================
+   These styles apply to the ENTIRE application. They are loaded via
+   angular.json → styles array. Component-specific styles should go in
+   the component's own CSS file, not here.
+
+   We keep global styles minimal — just layout utilities and shared classes
+   that multiple components need.
+   ========================================================================== */
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* ---------------------------------------------------------------------------
+   Auth pages (login, register) — centered card layout
+   ---------------------------------------------------------------------------
+   .auth-container centers its child (the mat-card) both horizontally
+   and vertically using flexbox. This gives us the classic "centered card
+   on a blank page" look that most login forms use.
+   --------------------------------------------------------------------------- */
+
+.auth-container {
+  display: flex;
+  justify-content: center;   /* horizontal center */
+  align-items: center;        /* vertical center */
+  min-height: 100vh;          /* full viewport height */
+  padding: 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;           /* don't stretch too wide on large screens */
+}
+
+/* ---------------------------------------------------------------------------
+   Form utilities
+   --------------------------------------------------------------------------- */
+
+/* Makes form fields take the full width of their container */
+.full-width {
+  width: 100%;
+}
+
+/* Error and success message styles */
+.error-text {
+  color: var(--mat-sys-error, #b00020);
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+.success-text {
+  color: #2e7d32;
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Dashboard pages — simple centered layout
+   --------------------------------------------------------------------------- */
+
+.dashboard-container {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;            /* center horizontally */
+}
