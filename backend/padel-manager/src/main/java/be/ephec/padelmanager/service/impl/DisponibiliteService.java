@@ -13,7 +13,9 @@ import be.ephec.padelmanager.repository.HoraireAnnuelRepo;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
 import be.ephec.padelmanager.service.IDisponibiliteService;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,18 +39,21 @@ public class DisponibiliteService implements IDisponibiliteService {
     private final FermeturePonctuelleRepo fermeturePonctuelleRepo;
     private final FermetureRecurrenteRepo fermetureRecurrenteRepo;
     private final SiteRepo siteRepo;
+    private final SiteAccessChecker siteAccessChecker;
 
     static final Duration SLOT_DURATION = Duration.ofMinutes(90);
     static final Duration PAUSE = Duration.ofMinutes(15);
     static final Duration SLOT_STEP = SLOT_DURATION.plus(PAUSE); // 105 min between slot starts
 
     @Override
-    public int genererCreneaux(Integer siteId, Integer annee) {
+    public int genererCreneaux(Integer siteId, Integer annee, Authentication authentication) {
+        siteAccessChecker.check(authentication, siteId);
         return genererCreneauxInterne(siteId, annee, Collections.emptySet());
     }
 
     @Override
-    public int regenererCreneaux(Integer siteId, Integer annee) {
+    public int regenererCreneaux(Integer siteId, Integer annee, Authentication authentication) {
+        siteAccessChecker.check(authentication, siteId);
         LocalDateTime yearStart = LocalDate.of(annee, 1, 1).atStartOfDay();
         LocalDateTime yearEnd = LocalDate.of(annee, 12, 31).atTime(23, 59, 59);
 
@@ -65,6 +70,7 @@ public class DisponibiliteService implements IDisponibiliteService {
         return genererCreneauxInterne(siteId, annee, reservedKeys);
     }
 
+    // Callers must call siteAccessChecker.check() before invoking this method.
     private int genererCreneauxInterne(Integer siteId, Integer annee, Set<String> excludedKeys) {
         if (!siteRepo.existsById(siteId)) {
             throw new NotFoundException("Site introuvable : " + siteId);

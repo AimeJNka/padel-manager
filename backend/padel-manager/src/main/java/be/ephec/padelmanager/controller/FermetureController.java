@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,8 +30,9 @@ public class FermetureController {
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
     public ResponseEntity<FermetureRecurrenteDTO> createRecurrente(
             @PathVariable Integer idSite,
-            @Valid @RequestBody FermetureRecurrenteDTO dto) {
-        return ResponseEntity.ok(fermetureRecurrenteService.create(idSite, dto));
+            @Valid @RequestBody FermetureRecurrenteDTO dto,
+            Authentication authentication) {
+        return ResponseEntity.ok(fermetureRecurrenteService.create(idSite, dto, authentication));
     }
 
     @GetMapping("/ponctuelles")
@@ -42,7 +44,8 @@ public class FermetureController {
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
     public ResponseEntity<FermeturePonctuelleDTO> createPonctuelle(
             @PathVariable Integer idSite,
-            @Valid @RequestBody FermeturePonctuelleDTO dto) {
-        return ResponseEntity.ok(fermeturePonctuelleService.create(idSite, dto));
+            @Valid @RequestBody FermeturePonctuelleDTO dto,
+            Authentication authentication) {
+        return ResponseEntity.ok(fermeturePonctuelleService.create(idSite, dto, authentication));
     }
 }

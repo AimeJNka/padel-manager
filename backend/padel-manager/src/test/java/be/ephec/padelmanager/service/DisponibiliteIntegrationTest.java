@@ -13,6 +13,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -44,28 +47,31 @@ class DisponibiliteIntegrationTest {
     @Autowired
     DisponibiliteRepo disponibiliteRepo;
 
+    private static final Authentication ADMIN_GLOBAL =
+            new TestingAuthenticationToken("admin", null, "ROLE_ADMIN_GLOBAL");
+
     @Test
     void genererCreneaux_site1_2026_correctCount() {
-        int result = disponibiliteService.genererCreneaux(1, 2026);
+        int result = disponibiliteService.genererCreneaux(1, 2026, ADMIN_GLOBAL);
         assertThat(result).isEqualTo(7623);
     }
 
     @Test
     void genererCreneaux_site2_2026_correctCount() {
-        int result = disponibiliteService.genererCreneaux(2, 2026);
+        int result = disponibiliteService.genererCreneaux(2, 2026, ADMIN_GLOBAL);
         assertThat(result).isEqualTo(3732);
     }
 
     @Test
     void genererCreneaux_unknownSite_throwsNotFoundException() {
-        assertThatThrownBy(() -> disponibiliteService.genererCreneaux(999, 2026))
+        assertThatThrownBy(() -> disponibiliteService.genererCreneaux(999, 2026, ADMIN_GLOBAL))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void genererCreneaux_site1_jan2_correctSlotStartTimes() {
         // Jan 1 is a global closure → first open day is Jan 2
-        disponibiliteService.genererCreneaux(1, 2026);
+        disponibiliteService.genererCreneaux(1, 2026, ADMIN_GLOBAL);
 
         List<Disponibilite> jan2Slots = disponibiliteRepo
                 .findByTerrainSiteIdSiteAndDateHeureDebutBetween(1,
@@ -96,7 +102,7 @@ class DisponibiliteIntegrationTest {
     @Test
     void regenererCreneaux_preservesReservedAndRegeneratesLibre() {
         // Step 1 — generate initial slots
-        disponibiliteService.genererCreneaux(1, 2026);
+        disponibiliteService.genererCreneaux(1, 2026, ADMIN_GLOBAL);
 
         // Step 2 — mark 3 slots on Jan 2 as RESERVE (simulating bookings)
         List<Disponibilite> jan2Slots = disponibiliteRepo
@@ -109,7 +115,7 @@ class DisponibiliteIntegrationTest {
         });
 
         // Step 3 — regenerate
-        int regenerated = disponibiliteService.regenererCreneaux(1, 2026);
+        int regenerated = disponibiliteService.regenererCreneaux(1, 2026, ADMIN_GLOBAL);
 
         // 7623 total - 3 reserved = 7620 new LIBRE slots
         assertThat(regenerated).isEqualTo(7620);

@@ -8,7 +8,9 @@ import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.repository.FermeturePonctuelleRepo;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.service.IFermeturePonctuelleService;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,7 @@ public class FermeturePonctuelleService implements IFermeturePonctuelleService {
 
     private final FermeturePonctuelleRepo fermetureRepo;
     private final SiteRepo siteRepo;
+    private final SiteAccessChecker siteAccessChecker;
 
     @Override
     public List<FermeturePonctuelleDTO> findBySite(Integer idSite) {
@@ -28,7 +31,8 @@ public class FermeturePonctuelleService implements IFermeturePonctuelleService {
     }
 
     @Override
-    public FermeturePonctuelleDTO create(Integer idSite, FermeturePonctuelleDTO dto) {
+    public FermeturePonctuelleDTO create(Integer idSite, FermeturePonctuelleDTO dto, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
         Site site = siteRepo.findById(idSite)
                 .orElseThrow(() -> new NotFoundException("Site introuvable : " + idSite));
         FermeturePonctuelle fermeture = new FermeturePonctuelle();
