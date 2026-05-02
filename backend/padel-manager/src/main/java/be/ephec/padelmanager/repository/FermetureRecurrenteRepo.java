@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface FermetureRecurrenteRepo extends JpaRepository<FermetureRecurrente, Integer> {
     List<FermetureRecurrente> findBySiteIdSite(Integer idSite);
+
+    List<FermetureRecurrente> findBySiteIdSiteOrSiteIsNull(Integer idSite);
 }
