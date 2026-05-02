@@ -4,4 +4,6 @@ import be.ephec.padelmanager.model.Penalite;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface PenaliteRepo extends JpaRepository<Penalite, Integer> {
+
+    boolean existsByMembreMatriculeAndDateFinAfter(String matricule, java.time.LocalDateTime now);
 }
