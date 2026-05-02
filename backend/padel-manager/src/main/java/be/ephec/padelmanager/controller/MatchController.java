@@ -28,6 +28,7 @@ public class MatchController {
     private final IMatchPadelService matchPadelService;
 
     @PostMapping("/prive")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
     public ResponseEntity<MatchPadelDTO> creerMatchPrive(
             @Valid @RequestBody CreerMatchRequest request,
             Authentication auth) {
@@ -36,6 +37,7 @@ public class MatchController {
     }
 
     @PostMapping("/public")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
     public ResponseEntity<MatchPadelDTO> creerMatchPublic(
             @Valid @RequestBody CreerMatchRequest request,
             Authentication auth) {
