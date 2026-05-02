@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface FermeturePonctuelleRepo extends JpaRepository<FermeturePonctuelle, Integer> {
     List<FermeturePonctuelle> findBySiteIdSite(Integer idSite);
+
+    List<FermeturePonctuelle> findBySiteIdSiteOrSiteIsNull(Integer idSite);
 }
