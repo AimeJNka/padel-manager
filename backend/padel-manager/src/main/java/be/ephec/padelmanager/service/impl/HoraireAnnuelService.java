@@ -8,7 +8,9 @@ import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.repository.HoraireAnnuelRepo;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.service.IHoraireAnnuelService;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,7 @@ public class HoraireAnnuelService implements IHoraireAnnuelService {
 
     private final HoraireAnnuelRepo horaireRepo;
     private final SiteRepo siteRepo;
+    private final SiteAccessChecker siteAccessChecker;
 
     @Override
     public List<HoraireAnnuelDTO> findBySite(Integer idSite) {
@@ -28,7 +31,8 @@ public class HoraireAnnuelService implements IHoraireAnnuelService {
     }
 
     @Override
-    public HoraireAnnuelDTO create(Integer idSite, HoraireAnnuelDTO dto) {
+    public HoraireAnnuelDTO create(Integer idSite, HoraireAnnuelDTO dto, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
         Site site = siteRepo.findById(idSite)
                 .orElseThrow(() -> new NotFoundException("Site introuvable : " + idSite));
         HoraireAnnuel horaire = new HoraireAnnuel();

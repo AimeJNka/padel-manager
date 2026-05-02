@@ -8,7 +8,9 @@ import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.repository.FermetureRecurrenteRepo;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.service.IFermetureRecurrenteService;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +21,7 @@ public class FermetureRecurrenteService implements IFermetureRecurrenteService {
 
     private final FermetureRecurrenteRepo fermetureRepo;
     private final SiteRepo siteRepo;
+    private final SiteAccessChecker siteAccessChecker;
 
     @Override
     public List<FermetureRecurrenteDTO> findBySite(Integer idSite) {
@@ -28,7 +31,8 @@ public class FermetureRecurrenteService implements IFermetureRecurrenteService {
     }
 
     @Override
-    public FermetureRecurrenteDTO create(Integer idSite, FermetureRecurrenteDTO dto) {
+    public FermetureRecurrenteDTO create(Integer idSite, FermetureRecurrenteDTO dto, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
         Site site = siteRepo.findById(idSite)
                 .orElseThrow(() -> new NotFoundException("Site introuvable : " + idSite));
         FermetureRecurrente fermeture = new FermetureRecurrente();

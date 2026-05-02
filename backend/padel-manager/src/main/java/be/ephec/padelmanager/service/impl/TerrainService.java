@@ -3,13 +3,12 @@ package be.ephec.padelmanager.service.impl;
 import be.ephec.padelmanager.dto.SiteDTO;
 import be.ephec.padelmanager.dto.TerrainDTO;
 import be.ephec.padelmanager.exception.NotFoundException;
-import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.model.Terrain;
-import be.ephec.padelmanager.config.Role;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
 import be.ephec.padelmanager.service.ITerrainService;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -22,6 +21,7 @@ public class TerrainService implements ITerrainService {
 
     private final TerrainRepo terrainRepo;
     private final SiteRepo siteRepo;
+    private final SiteAccessChecker siteAccessChecker;
 
     @Override
     public List<TerrainDTO> findBySite(Integer idSite) {
@@ -32,7 +32,7 @@ public class TerrainService implements ITerrainService {
 
     @Override
     public TerrainDTO create(Integer idSite, TerrainDTO dto, Authentication authentication) {
-        checkSiteAccess(authentication, idSite);
+        siteAccessChecker.check(authentication, idSite);
         Site site = siteRepo.findById(idSite)
                 .orElseThrow(() -> new NotFoundException("Site introuvable : " + idSite));
         Terrain terrain = new Terrain();
@@ -47,21 +47,10 @@ public class TerrainService implements ITerrainService {
         Terrain terrain = terrainRepo.findById(idTerrain)
                 .orElseThrow(() -> new NotFoundException("Terrain introuvable : " + idTerrain));
         Integer idSite = terrain.getSite() != null ? terrain.getSite().getIdSite() : null;
-        checkSiteAccess(authentication, idSite);
+        siteAccessChecker.check(authentication, idSite);
         terrain.setNumero(dto.getNumero());
         terrain.setStatut(dto.getStatut());
         return toDTO(terrainRepo.save(terrain));
-    }
-
-    private void checkSiteAccess(Authentication authentication, Integer idSite) {
-        boolean isGlobal = authentication.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals(Role.ADMIN_GLOBAL.authority()));
-        if (isGlobal) return;
-
-        Integer adminSiteId = (Integer) authentication.getDetails();
-        if (adminSiteId == null || !adminSiteId.equals(idSite)) {
-            throw new ForbiddenException("Accès refusé");
-        }
     }
 
     private TerrainDTO toDTO(Terrain t) {

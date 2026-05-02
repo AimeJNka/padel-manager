@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,15 +23,15 @@ public class DisponibiliteController {
 
     @PostMapping("/generer")
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
-    public ResponseEntity<Map<String, Integer>> generer(@Valid @RequestBody GenererCreneauxRequest req) {
-        int count = disponibiliteService.genererCreneaux(req.getSiteId(), req.getAnnee());
+    public ResponseEntity<Map<String, Integer>> generer(@Valid @RequestBody GenererCreneauxRequest req, Authentication authentication) {
+        int count = disponibiliteService.genererCreneaux(req.getSiteId(), req.getAnnee(), authentication);
         return ResponseEntity.ok(Map.of("generated", count));
     }
 
     @PostMapping("/regenerer")
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
-    public ResponseEntity<Map<String, Integer>> regenerer(@Valid @RequestBody GenererCreneauxRequest req) {
-        int count = disponibiliteService.regenererCreneaux(req.getSiteId(), req.getAnnee());
+    public ResponseEntity<Map<String, Integer>> regenerer(@Valid @RequestBody GenererCreneauxRequest req, Authentication authentication) {
+        int count = disponibiliteService.regenererCreneaux(req.getSiteId(), req.getAnnee(), authentication);
         return ResponseEntity.ok(Map.of("generated", count));
     }
 }

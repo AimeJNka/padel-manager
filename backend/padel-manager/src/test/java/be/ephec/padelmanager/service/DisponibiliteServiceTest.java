@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.model.*;
 import be.ephec.padelmanager.repository.*;
+import be.ephec.padelmanager.service.SiteAccessChecker;
 import be.ephec.padelmanager.service.impl.DisponibiliteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 
 import be.ephec.padelmanager.exception.NotFoundException;
 
@@ -39,6 +41,8 @@ class DisponibiliteServiceTest {
     @Mock FermeturePonctuelleRepo fermeturePonctuelleRepo;
     @Mock FermetureRecurrenteRepo fermetureRecurrenteRepo;
     @Mock SiteRepo siteRepo;
+    @Mock SiteAccessChecker siteAccessChecker;
+    @Mock Authentication authentication;
 
     @InjectMocks DisponibiliteService service;
 
@@ -77,7 +81,7 @@ class DisponibiliteServiceTest {
     @Test
     void genererCreneaux_noClosures_oneSlotPerDay() {
         // 2026 = 365 days, 1 terrain, 1 slot/day → 365
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(365);
     }
 
@@ -88,7 +92,7 @@ class DisponibiliteServiceTest {
         when(fermeturePonctuelleRepo.findBySiteIdSiteOrSiteIsNull(SITE_ID))
                 .thenReturn(List.of(fermeture));
 
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(364); // 365 - 1 closed day
     }
 
@@ -100,7 +104,7 @@ class DisponibiliteServiceTest {
         when(fermetureRecurrenteRepo.findBySiteIdSiteOrSiteIsNull(SITE_ID))
                 .thenReturn(List.of(fermeture));
 
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(313); // 365 - 52 Mondays
     }
 
@@ -111,7 +115,7 @@ class DisponibiliteServiceTest {
         terrain2.setSite(site);
         when(terrainRepo.findBySiteIdSite(SITE_ID)).thenReturn(List.of(terrain, terrain2));
 
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(365 * 2);
     }
 
@@ -121,28 +125,28 @@ class DisponibiliteServiceTest {
         // 21:15 would end at 22:45 → doesn't fit
         horaire.setHeureFermeture(LocalTime.of(22, 0));
 
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(365 * 7);
     }
 
     @Test
     void genererCreneaux_siteNotFound_throwsNotFoundException() {
         when(siteRepo.existsById(999)).thenReturn(false);
-        assertThatThrownBy(() -> service.genererCreneaux(999, ANNEE))
+        assertThatThrownBy(() -> service.genererCreneaux(999, ANNEE, authentication))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void genererCreneaux_noHoraireForYear_throwsNotFoundException() {
         when(horaireRepo.findBySiteIdSiteAndAnnee(SITE_ID, 2099)).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> service.genererCreneaux(SITE_ID, 2099))
+        assertThatThrownBy(() -> service.genererCreneaux(SITE_ID, 2099, authentication))
                 .isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void genererCreneaux_noTerrains_returnsZero() {
         when(terrainRepo.findBySiteIdSite(SITE_ID)).thenReturn(Collections.emptyList());
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(0);
     }
 
@@ -150,7 +154,7 @@ class DisponibiliteServiceTest {
     void genererCreneaux_slotEndsExactlyAtClose_isValid() {
         // 09:00–10:30 is exactly 90 min: the slot ends precisely at closeTime → must fit
         horaire.setHeureFermeture(LocalTime.of(10, 30));
-        int result = service.genererCreneaux(SITE_ID, ANNEE);
+        int result = service.genererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(365); // 1 slot/day, no closures
     }
 
@@ -164,7 +168,7 @@ class DisponibiliteServiceTest {
         when(disponibiliteRepo.findByTerrainSiteIdSiteAndDateHeureDebutBetween(eq(SITE_ID), any(), any()))
                 .thenReturn(List.of(reserved));
 
-        int result = service.regenererCreneaux(SITE_ID, ANNEE);
+        int result = service.regenererCreneaux(SITE_ID, ANNEE, authentication);
         assertThat(result).isEqualTo(364);
         verify(disponibiliteRepo)
                 .deleteLibreByTerrainSiteAndYearRange(eq(SITE_ID), any(), any());

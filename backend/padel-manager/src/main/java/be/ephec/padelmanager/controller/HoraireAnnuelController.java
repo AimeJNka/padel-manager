@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class HoraireAnnuelController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
-    public ResponseEntity<HoraireAnnuelDTO> create(@PathVariable Integer idSite, @Valid @RequestBody HoraireAnnuelDTO dto) {
-        return ResponseEntity.ok(horaireService.create(idSite, dto));
+    public ResponseEntity<HoraireAnnuelDTO> create(@PathVariable Integer idSite, @Valid @RequestBody HoraireAnnuelDTO dto, Authentication authentication) {
+        return ResponseEntity.ok(horaireService.create(idSite, dto, authentication));
     }
 }
