@@ -130,6 +130,11 @@ public class PaiementService implements IPaiementService {
 
         paiement.setStatut("REMBOURSE");
         paiementRepo.save(paiement);
+
+        Participation participation = paiement.getParticipation();
+        participation.setStatut("EN_ATTENTE");
+        participationRepo.save(participation);
+
         return PaiementDTO.from(paiement);
     }
 
@@ -169,8 +174,16 @@ public class PaiementService implements IPaiementService {
                 predicates.add(cb.equal(root.get("statut"), statut));
             }
 
-            // SECURITY #3 — site-scope enforcement
-            Integer effectiveSiteId = isGlobal ? siteId : (Integer) auth.getDetails();
+            // SECURITY #3 — site-scope enforcement (fail-closed for ADMIN_SITE without claim)
+            Integer effectiveSiteId;
+            if (isGlobal) {
+                effectiveSiteId = siteId;
+            } else {
+                effectiveSiteId = (Integer) auth.getDetails();
+                if (effectiveSiteId == null) {
+                    throw new ForbiddenException("Accès refusé");
+                }
+            }
             if (effectiveSiteId != null) {
                 Join<Object, Object> siteJoin = matchJoin
                         .join("disponibilite")

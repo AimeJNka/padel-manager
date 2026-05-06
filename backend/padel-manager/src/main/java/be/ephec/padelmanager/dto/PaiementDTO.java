@@ -5,6 +5,11 @@ import be.ephec.padelmanager.model.Paiement;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * soldeInclus: montant de solde_du absorbé lors de ce paiement.
+ * Visible au membre propriétaire par conformité avec UC-06 du CDC
+ * (affichage du solde dû au membre).
+ */
 public record PaiementDTO(
         Integer idPaiement,
         Integer idParticipation,
@@ -17,6 +22,7 @@ public record PaiementDTO(
         String statut
 ) {
     public static PaiementDTO from(Paiement p) {
+        // TODO M9: mapping null-safe pour personne.getPrenom()/getNom() si données incomplètes en base
         var participation = p.getParticipation();
         var membre = participation.getMembre();
         var personne = membre.getPersonne();

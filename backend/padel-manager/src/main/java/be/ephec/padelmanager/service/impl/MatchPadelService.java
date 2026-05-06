@@ -163,7 +163,7 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 48 : 24;
+        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 24 : 48;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
@@ -230,7 +230,7 @@ public class MatchPadelService implements IMatchPadelService {
         Participation participation = new Participation();
         participation.setMatchPadel(saved);
         participation.setMembre(organisateur);
-        participation.setStatut("CONFIRME");
+        participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);

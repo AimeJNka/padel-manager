@@ -1,7 +1,6 @@
 package be.ephec.padelmanager.service.impl;
 
 import be.ephec.padelmanager.exception.BadRequestException;
-import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
@@ -44,10 +43,6 @@ public class ParticipationService implements IParticipationService {
                 .findByMatchPadelIdMatchAndMembreMatricule(idMatch, matricule)
                 .orElseThrow(() -> new NotFoundException("Participation introuvable"));
 
-        if (!participation.getMembre().getMatricule().equals(matricule)) {
-            throw new ForbiddenException("Accès interdit");
-        }
-
         if ("ANNULEE".equals(participation.getStatut())) {
             throw new BadRequestException("Participation déjà annulée");
         }
@@ -58,25 +53,25 @@ public class ParticipationService implements IParticipationService {
             throw new BadRequestException("Match déjà passé ou en cours");
         }
 
-        // TODO NBC-1: missing paiement row surfaces as 500 — add explicit check and return 409 once data integrity is proven
         Paiement paiement = paiementRepo.findByParticipation(participation)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Paiement manquant pour participation " + participation.getIdParticipation()));
+                .orElseThrow(() -> new BadRequestException(
+                        "Paiement introuvable pour participation " + participation.getIdParticipation()));
 
         long hoursUntilMatch = ChronoUnit.HOURS.between(now, debut);
         boolean late = hoursUntilMatch < 24L;
 
-        // TODO NBC-2: no optimistic locking — concurrent annulerMatch + annulerParticipation could double-update this row
         participation.setStatut("ANNULEE");
 
         if (late) {
-            paiement.setStatut("ANNULE");
-
             Membre membre = participation.getMembre();
-            BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
-            membre.setSoldeDu(current.add(new BigDecimal("15.00")));
-            membreRepo.save(membre);
-
+            if ("PAYE".equals(paiement.getStatut())) {
+                // Payment already received — absorbed as late-cancel fee. No extra debt.
+            } else {
+                paiement.setStatut("ANNULE");
+                BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
+                membre.setSoldeDu(current.add(new BigDecimal("15.00")));
+                membreRepo.save(membre);
+            }
             Penalite pen = new Penalite();
             pen.setMembre(membre);
             pen.setDateDebut(now);

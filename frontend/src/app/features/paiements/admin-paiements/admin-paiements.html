@@ -1,0 +1,110 @@
+<div class="page-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Gestion des paiements</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      <form [formGroup]="filterForm" (ngSubmit)="onFilter()" class="filter-bar">
+
+        <mat-form-field appearance="outline">
+          <mat-label>Matricule</mat-label>
+          <input matInput formControlName="matricule" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Statut</mat-label>
+          <mat-select formControlName="statut">
+            @for (opt of statutOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Match ID</mat-label>
+          <input matInput type="number" formControlName="matchId" />
+        </mat-form-field>
+
+        @if (isGlobalAdmin()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Site ID</mat-label>
+            <input matInput type="number" formControlName="siteId" />
+          </mat-form-field>
+        }
+
+        <div class="filter-actions">
+          <button mat-raised-button color="primary" type="submit">Filtrer</button>
+          <button mat-button type="button" (click)="onReset()">Réinitialiser</button>
+        </div>
+      </form>
+
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
+
+      <table mat-table [dataSource]="paiements()" class="full-width">
+
+        <ng-container matColumnDef="idMatch">
+          <th mat-header-cell *matHeaderCellDef>Match</th>
+          <td mat-cell *matCellDef="let p">{{ p.idMatch }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="nomJoueur">
+          <th mat-header-cell *matHeaderCellDef>Joueur</th>
+          <td mat-cell *matCellDef="let p">{{ p.nomJoueur }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="matricule">
+          <th mat-header-cell *matHeaderCellDef>Matricule</th>
+          <td mat-cell *matCellDef="let p">{{ p.matricule }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="montant">
+          <th mat-header-cell *matHeaderCellDef>Montant</th>
+          <td mat-cell *matCellDef="let p">{{ p.montant }} €</td>
+        </ng-container>
+
+        <ng-container matColumnDef="datePaiement">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let p">{{ p.datePaiement | date:'dd/MM/yyyy HH:mm' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="statut">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let p">
+            <mat-chip [color]="chipColor(p.statut)" selected>{{ p.statut }}</mat-chip>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let p">
+            @if (p.statut === 'PAYE') {
+              <button mat-stroked-button color="warn" (click)="rembourser(p.idPaiement)">
+                Rembourser
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      </table>
+
+      @if (!isLoading() && paiements().length === 0) {
+        <p>Aucun paiement à afficher</p>
+      }
+
+      <mat-paginator
+        [length]="totalElements()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="[10, 20, 50, 100]"
+        (page)="onPageChange($event)">
+      </mat-paginator>
+
+    </mat-card-content>
+  </mat-card>
+</div>

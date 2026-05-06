@@ -46,6 +46,33 @@ export const routes: Routes = [
     data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'] },
   },
 
+  {
+    path: 'mes-paiements',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/paiements/mes-paiements/mes-paiements').then(m => m.MesPaiements),
+  },
+  {
+    path: 'mes-penalites',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/penalites/mes-penalites/mes-penalites').then(m => m.MesPenalites),
+  },
+  {
+    path: 'admin/paiements',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'] },
+    loadComponent: () =>
+      import('./features/paiements/admin-paiements/admin-paiements').then(m => m.AdminPaiements),
+  },
+  {
+    path: 'admin/penalites',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'] },
+    loadComponent: () =>
+      import('./features/penalites/admin-penalites/admin-penalites').then(m => m.AdminPenalites),
+  },
+
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];
