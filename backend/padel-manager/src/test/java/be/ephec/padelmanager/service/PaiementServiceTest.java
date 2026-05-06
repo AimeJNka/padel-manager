@@ -181,4 +181,42 @@ class PaiementServiceTest {
 
         verify(paiementRepo, never()).save(any());
     }
+
+    @Test
+    void rembourserPaiement_whenParticipationNotConfirme_doesNotSave() {
+        // Participation is EN_ATTENTE (no prior confirmation), paiement is PAYE.
+        // Refund must NOT touch the participation: participationRepo.save never called.
+        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
+        paiement.getParticipation().setStatut("EN_ATTENTE");
+        when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
+
+        Authentication adminGlobal =
+                new TestingAuthenticationToken("admin", null, "ROLE_ADMIN_GLOBAL");
+
+        service.rembourserPaiement(PAIEMENT_ID, adminGlobal);
+
+        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
+        assertThat(paiement.getParticipation().getStatut()).isEqualTo("EN_ATTENTE");
+        verify(paiementRepo, times(1)).save(paiement);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void rembourserPaiement_whenParticipationConfirme_setsEnAttente() {
+        // Participation is CONFIRME, paiement is PAYE.
+        // Refund downgrades the participation to EN_ATTENTE and saves it once.
+        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
+        paiement.getParticipation().setStatut("CONFIRME");
+        when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
+
+        Authentication adminGlobal =
+                new TestingAuthenticationToken("admin", null, "ROLE_ADMIN_GLOBAL");
+
+        service.rembourserPaiement(PAIEMENT_ID, adminGlobal);
+
+        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
+        assertThat(paiement.getParticipation().getStatut()).isEqualTo("EN_ATTENTE");
+        verify(paiementRepo, times(1)).save(paiement);
+        verify(participationRepo, times(1)).save(paiement.getParticipation());
+    }
 }

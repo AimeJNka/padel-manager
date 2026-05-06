@@ -132,8 +132,10 @@ public class PaiementService implements IPaiementService {
         paiementRepo.save(paiement);
 
         Participation participation = paiement.getParticipation();
-        participation.setStatut("EN_ATTENTE");
-        participationRepo.save(participation);
+        if ("CONFIRME".equals(participation.getStatut())) {
+            participation.setStatut("EN_ATTENTE");
+            participationRepo.save(participation);
+        }
 
         return PaiementDTO.from(paiement);
     }

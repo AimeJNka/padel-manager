@@ -64,14 +64,14 @@ public class ParticipationService implements IParticipationService {
 
         if (late) {
             Membre membre = participation.getMembre();
-            if ("PAYE".equals(paiement.getStatut())) {
-                // Payment already received — absorbed as late-cancel fee. No extra debt.
-            } else {
+            if (!"PAYE".equals(paiement.getStatut())) {
+                // Not yet paid — mark cancelled and charge the penalty fee as debt
                 paiement.setStatut("ANNULE");
                 BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
                 membre.setSoldeDu(current.add(new BigDecimal("15.00")));
                 membreRepo.save(membre);
             }
+            // PAYE path: payment already received, absorbed as the late-cancel fee — no extra debt
             Penalite pen = new Penalite();
             pen.setMembre(membre);
             pen.setDateDebut(now);

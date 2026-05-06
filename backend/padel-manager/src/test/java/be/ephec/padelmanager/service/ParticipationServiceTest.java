@@ -238,4 +238,40 @@ class ParticipationServiceTest {
         verify(penaliteRepo, times(1)).save(any(Penalite.class));
         verify(membreRepo, times(1)).save(any(Membre.class));
     }
+
+    // ── Additional crash / edge-case guards ─────────
+
+    @Test
+    void annulerParticipation_boundary_exactly24h_isPAYE() {
+        // Exactly at the 24h boundary, member already PAID.
+        // Spec: hoursRestantes < delaiRequis => exactly 24h is NOT late => REMBOURSE, never absorbed as fee.
+        LocalDateTime start = LocalDateTime.now().plusHours(24).plusSeconds(2);
+        Participation participation = buildParticipation(start, "PAYE", BigDecimal.ZERO, "EN_ATTENTE");
+        Paiement paiement = paiementRepo.findByParticipation(participation).orElseThrow();
+
+        service.annulerParticipation(ID_MATCH, authAs(MATRICULE));
+
+        assertThat(participation.getStatut()).isEqualTo("ANNULEE");
+        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
+        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(penaliteRepo, never()).save(any());
+        verify(membreRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerParticipation_lateCancel_paid_noDebt() {
+        // Duplicate-charge guard: late + PAYE must NOT add debt nor save the membre.
+        // Penalty is issued, paiement stays PAYE (absorbed as late-cancel fee).
+        LocalDateTime start = LocalDateTime.now().plusHours(5);
+        Participation participation = buildParticipation(start, "PAYE", BigDecimal.ZERO, "EN_ATTENTE");
+        Paiement paiement = paiementRepo.findByParticipation(participation).orElseThrow();
+
+        service.annulerParticipation(ID_MATCH, authAs(MATRICULE));
+
+        assertThat(participation.getStatut()).isEqualTo("ANNULEE");
+        assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
+        verify(membreRepo, never()).save(any());
+        verify(penaliteRepo, times(1)).save(any(Penalite.class));
+    }
 }
