@@ -21,6 +21,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
+import be.ephec.padelmanager.service.IPaiementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class MatchPadelService implements IMatchPadelService {
     private final DisponibiliteRepo disponibiliteRepo;
     private final MembreRepo membreRepo;
     private final PenaliteRepo penaliteRepo;
+    private final IPaiementService paiementService;
 
     @Override
     public MatchPadelDTO creerMatchPrive(Integer dispoId, Authentication auth) {
@@ -90,6 +92,7 @@ public class MatchPadelService implements IMatchPadelService {
         participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
     }
 
     @Override
@@ -141,6 +144,7 @@ public class MatchPadelService implements IMatchPadelService {
         participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
     }
 
     @Override
@@ -171,6 +175,7 @@ public class MatchPadelService implements IMatchPadelService {
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
         for (Participation p : participations) {
             p.setStatut("ANNULEE");
+            paiementService.annulerPourParticipation(p);
         }
         participationRepo.saveAll(participations);
 
@@ -228,6 +233,7 @@ public class MatchPadelService implements IMatchPadelService {
         participation.setStatut("CONFIRME");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
 
         return toDTO(saved);
     }
