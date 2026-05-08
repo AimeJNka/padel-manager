@@ -21,6 +21,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
+import be.ephec.padelmanager.service.IPaiementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -41,6 +42,7 @@ public class MatchPadelService implements IMatchPadelService {
     private final DisponibiliteRepo disponibiliteRepo;
     private final MembreRepo membreRepo;
     private final PenaliteRepo penaliteRepo;
+    private final IPaiementService paiementService;
 
     @Override
     public MatchPadelDTO creerMatchPrive(Integer dispoId, Authentication auth) {
@@ -68,6 +70,10 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut ajouter un joueur");
         }
+        if ("PUBLIC".equals(match.getTypeMatch())) {
+            throw new BadRequestException(
+                    "CF-M-010 : l'organisateur ne peut pas ajouter directement un joueur à un match public");
+        }
         Membre joueur = membreRepo.findById(matriculeJoueur)
                 .orElseThrow(() -> new NotFoundException("Membre introuvable : " + matriculeJoueur));
 
@@ -90,6 +96,7 @@ public class MatchPadelService implements IMatchPadelService {
         participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
     }
 
     @Override
@@ -141,6 +148,7 @@ public class MatchPadelService implements IMatchPadelService {
         participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
     }
 
     @Override
@@ -159,7 +167,7 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 48 : 24;
+        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 24 : 48;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
@@ -171,6 +179,7 @@ public class MatchPadelService implements IMatchPadelService {
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
         for (Participation p : participations) {
             p.setStatut("ANNULEE");
+            paiementService.annulerPourParticipation(p);
         }
         participationRepo.saveAll(participations);
 
@@ -225,9 +234,10 @@ public class MatchPadelService implements IMatchPadelService {
         Participation participation = new Participation();
         participation.setMatchPadel(saved);
         participation.setMembre(organisateur);
-        participation.setStatut("CONFIRME");
+        participation.setStatut("EN_ATTENTE");
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
+        paiementService.creerPourParticipation(participation);
 
         return toDTO(saved);
     }

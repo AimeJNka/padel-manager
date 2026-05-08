@@ -1,0 +1,53 @@
+<div class="page-container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title>Mes pénalités</mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      @if (isLoading()) {
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      }
+
+      @if (!isLoading() && penalites().length === 0) {
+        <p>Aucune pénalité</p>
+      }
+
+      @if (!isLoading() && penalites().length > 0) {
+        <table mat-table [dataSource]="penalites()" class="full-width">
+
+          <ng-container matColumnDef="dateDebut">
+            <th mat-header-cell *matHeaderCellDef>Début</th>
+            <td mat-cell *matCellDef="let p">{{ p.dateDebut | date:'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="dateFin">
+            <th mat-header-cell *matHeaderCellDef>Fin</th>
+            <td mat-cell *matCellDef="let p">{{ p.dateFin | date:'dd/MM/yyyy HH:mm' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="motif">
+            <th mat-header-cell *matHeaderCellDef>Motif</th>
+            <td mat-cell *matCellDef="let p">{{ p.motif }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="statut">
+            <th mat-header-cell *matHeaderCellDef>Statut</th>
+            <td mat-cell *matCellDef="let p">
+              @if (p.active) {
+                <mat-chip color="warn" selected>Actif</mat-chip>
+              } @else {
+                <mat-chip>Expiré</mat-chip>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        </table>
+      }
+
+    </mat-card-content>
+  </mat-card>
+</div>

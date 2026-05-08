@@ -4,6 +4,7 @@ import be.ephec.padelmanager.dto.AjouterJoueurRequest;
 import be.ephec.padelmanager.dto.CreerMatchRequest;
 import be.ephec.padelmanager.dto.MatchPadelDTO;
 import be.ephec.padelmanager.service.IMatchPadelService;
+import be.ephec.padelmanager.service.IParticipationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,14 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/matches")
+@RequestMapping("/api/matchs")
 @RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('GLOBAL', 'SITE', 'LIBRE')")
 public class MatchController {
 
     private final IMatchPadelService matchPadelService;
+    private final IParticipationService participationService;
 
     @PostMapping("/prive")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
     public ResponseEntity<MatchPadelDTO> creerMatchPrive(
             @Valid @RequestBody CreerMatchRequest request,
             Authentication auth) {
@@ -36,6 +39,7 @@ public class MatchController {
     }
 
     @PostMapping("/public")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
     public ResponseEntity<MatchPadelDTO> creerMatchPublic(
             @Valid @RequestBody CreerMatchRequest request,
             Authentication auth) {
@@ -65,6 +69,14 @@ public class MatchController {
             @PathVariable Integer id,
             Authentication auth) {
         matchPadelService.annulerMatch(id, auth);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{idMatch}/participation")
+    public ResponseEntity<Void> annulerParticipation(
+            @PathVariable Integer idMatch,
+            Authentication auth) {
+        participationService.annulerParticipation(idMatch, auth);
         return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,6 @@
 package be.ephec.padelmanager.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -8,6 +9,9 @@ import java.time.LocalDate;
 public class FermeturePonctuelleDTO {
     private Integer idFermeturePonctuelle;
     private SiteDTO site;
+
+    @NotNull
     private LocalDate dateFermeture;
+
     private String motif;
 }

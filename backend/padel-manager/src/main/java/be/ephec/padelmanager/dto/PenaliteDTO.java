@@ -1,15 +1,31 @@
 package be.ephec.padelmanager.dto;
 
-import lombok.Data;
-
+import be.ephec.padelmanager.model.Penalite;
 
 import java.time.LocalDateTime;
 
-@Data
-public class PenaliteDTO {
-    private Integer idPenalite;
-    private MembreDTO matricule;
-    private LocalDateTime dateDebut;
-    private LocalDateTime dateFin;
-    private String motif;
+public record PenaliteDTO(
+        Integer idPenalite,
+        String matricule,
+        String nomJoueur,
+        LocalDateTime dateDebut,
+        LocalDateTime dateFin,
+        String motif,
+        boolean active
+) {
+    public static PenaliteDTO from(Penalite p) {
+        var membre = p.getMembre();
+        var personne = membre.getPersonne();
+        String nom = (personne != null) ? personne.getPrenom() + " " + personne.getNom() : "—";
+        boolean active = p.getDateFin().isAfter(LocalDateTime.now());
+        return new PenaliteDTO(
+                p.getIdPenalite(),
+                membre.getMatricule(),
+                nom,
+                p.getDateDebut(),
+                p.getDateFin(),
+                p.getMotif(),
+                active
+        );
+    }
 }

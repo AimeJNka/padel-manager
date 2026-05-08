@@ -1,12 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard-libre',
-  imports: [MatCardModule, MatButtonModule],
+  imports: [MatCardModule, MatButtonModule, RouterLink],
   template: `
     <div class="dashboard-container">
       <mat-card>
@@ -17,6 +17,8 @@ import { AuthService } from '../../../core/services/auth.service';
           <p>Bienvenue sur votre espace membre libre.</p>
         </mat-card-content>
         <mat-card-actions>
+          <a mat-button routerLink="/mes-paiements">Mes paiements</a>
+          <a mat-button routerLink="/mes-penalites">Mes pénalités</a>
           <button mat-raised-button (click)="logout()">Se déconnecter</button>
         </mat-card-actions>
       </mat-card>
