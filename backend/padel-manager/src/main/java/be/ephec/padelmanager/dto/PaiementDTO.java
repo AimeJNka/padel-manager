@@ -19,24 +19,28 @@ public record PaiementDTO(
         BigDecimal montant,
         BigDecimal soldeInclus,
         LocalDateTime datePaiement,
-        String statut
+        String statut,
+        LocalDateTime matchDateHeureDebut,
+        String matchType
 ) {
     public static PaiementDTO from(Paiement p) {
-        // TODO M9: mapping null-safe pour personne.getPrenom()/getNom() si données incomplètes en base
         var participation = p.getParticipation();
+        var match = participation.getMatchPadel();
         var membre = participation.getMembre();
         var personne = membre.getPersonne();
-        String nomComplet = personne.getPrenom() + " " + personne.getNom();
+        String nomComplet = (personne != null) ? personne.getPrenom() + " " + personne.getNom() : "—";
         return new PaiementDTO(
                 p.getIdPaiement(),
                 participation.getIdParticipation(),
-                participation.getMatchPadel().getIdMatch(),
+                match.getIdMatch(),
                 membre.getMatricule(),
                 nomComplet,
                 p.getMontant(),
                 p.getSoldeInclus(),
                 p.getDatePaiement(),
-                p.getStatut()
+                p.getStatut(),
+                match.getDisponibilite().getDateHeureDebut(),
+                match.getTypeMatch()
         );
     }
 }

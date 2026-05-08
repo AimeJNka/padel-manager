@@ -70,6 +70,10 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut ajouter un joueur");
         }
+        if ("PUBLIC".equals(match.getTypeMatch())) {
+            throw new BadRequestException(
+                    "CF-M-010 : l'organisateur ne peut pas ajouter directement un joueur à un match public");
+        }
         Membre joueur = membreRepo.findById(matriculeJoueur)
                 .orElseThrow(() -> new NotFoundException("Membre introuvable : " + matriculeJoueur));
 

@@ -16,7 +16,7 @@ public record PenaliteDTO(
     public static PenaliteDTO from(Penalite p) {
         var membre = p.getMembre();
         var personne = membre.getPersonne();
-        String nom = personne.getPrenom() + " " + personne.getNom();
+        String nom = (personne != null) ? personne.getPrenom() + " " + personne.getNom() : "—";
         boolean active = p.getDateFin().isAfter(LocalDateTime.now());
         return new PenaliteDTO(
                 p.getIdPenalite(),

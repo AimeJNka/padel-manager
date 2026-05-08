@@ -11,7 +11,10 @@
       }
 
       @if (!isLoading() && paiements().length === 0) {
-        <p>Aucun paiement à afficher</p>
+        <p>
+          Aucun paiement enregistré. Inscrivez-vous à un match pour voir vos
+          paiements ici.
+        </p>
       }
 
       @if (!isLoading() && paiements().length > 0) {
@@ -19,24 +22,39 @@
 
           <ng-container matColumnDef="idMatch">
             <th mat-header-cell *matHeaderCellDef>Match</th>
-            <td mat-cell *matCellDef="let p">{{ p.idMatch }}</td>
+            <td mat-cell *matCellDef="let p" class="mono">#{{ p.idMatch }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="match">
+            <th mat-header-cell *matHeaderCellDef>Date du match</th>
+            <td mat-cell *matCellDef="let p">
+              {{ p.matchDateHeureDebut | date:'dd/MM/yyyy HH:mm' }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="montant">
             <th mat-header-cell *matHeaderCellDef>Montant</th>
-            <td mat-cell *matCellDef="let p">{{ p.montant }} €</td>
+            <td mat-cell *matCellDef="let p" class="mono num">
+              {{ p.montant | number:'1.2-2' }} €
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="soldeInclus">
             <th mat-header-cell *matHeaderCellDef>Solde inclus</th>
-            <td mat-cell *matCellDef="let p">
-              @if (p.soldeInclus > 0) { {{ p.soldeInclus }} € } @else { — }
+            <td mat-cell *matCellDef="let p" class="mono num">
+              @if (p.soldeInclus > 0) {
+                {{ p.soldeInclus | number:'1.2-2' }} €
+              } @else {
+                —
+              }
             </td>
           </ng-container>
 
           <ng-container matColumnDef="datePaiement">
-            <th mat-header-cell *matHeaderCellDef>Date</th>
-            <td mat-cell *matCellDef="let p">{{ p.datePaiement | date:'dd/MM/yyyy HH:mm' }}</td>
+            <th mat-header-cell *matHeaderCellDef>Payé le</th>
+            <td mat-cell *matCellDef="let p">
+              {{ p.datePaiement ? (p.datePaiement | date:'dd/MM/yyyy HH:mm') : '—' }}
+            </td>
           </ng-container>
 
           <ng-container matColumnDef="statut">
@@ -52,6 +70,11 @@
               @if (p.statut === 'EN_ATTENTE') {
                 <button mat-raised-button color="primary" (click)="payer(p.idPaiement)">
                   Payer
+                </button>
+              }
+              @if ((p.statut === 'EN_ATTENTE' || p.statut === 'PAYE') && matchIsUpcoming(p)) {
+                <button mat-stroked-button (click)="annulerParticipation(p)">
+                  Annuler
                 </button>
               }
             </td>

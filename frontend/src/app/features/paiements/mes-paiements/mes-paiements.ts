@@ -8,9 +8,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { PaiementService } from '../../../core/services/paiement.service';
 import { Paiement, PaiementStatut } from '../../../core/models/paiement.model';
+import {
+  AnnulationDialog,
+  AnnulationDialogResult,
+} from './annulation-dialog';
 
 @Component({
   selector: 'app-mes-paiements',
@@ -23,6 +28,7 @@ import { Paiement, PaiementStatut } from '../../../core/models/paiement.model';
     MatChipsModule,
     MatProgressBarModule,
     MatSnackBarModule,
+    MatDialogModule,
   ],
   templateUrl: './mes-paiements.html',
 })
@@ -30,13 +36,26 @@ export class MesPaiements implements OnInit {
 
   private readonly paiementService = inject(PaiementService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   readonly paiements = signal<Paiement[]>([]);
   readonly isLoading = signal(false);
-  readonly displayedColumns: string[] = ['idMatch', 'montant', 'soldeInclus', 'datePaiement', 'statut', 'actions'];
+  readonly displayedColumns: string[] = [
+    'idMatch',
+    'match',
+    'montant',
+    'soldeInclus',
+    'datePaiement',
+    'statut',
+    'actions',
+  ];
 
   ngOnInit(): void {
     this.load();
+  }
+
+  matchIsUpcoming(p: Paiement): boolean {
+    return new Date(p.matchDateHeureDebut).getTime() > Date.now();
   }
 
   load(): void {
@@ -65,6 +84,41 @@ export class MesPaiements implements OnInit {
         this.snackBar.open(err.error?.error ?? 'Erreur', 'Fermer', { duration: 4000 });
       },
     });
+  }
+
+  annulerParticipation(p: Paiement): void {
+    const ref = this.dialog.open<AnnulationDialog, Paiement, AnnulationDialogResult>(
+      AnnulationDialog,
+      {
+        data: p,
+        disableClose: true,
+        width: '460px',
+      },
+    );
+
+    ref.afterClosed().subscribe((result) => {
+      if (!result) {
+        return;
+      }
+      if (result.success) {
+        this.snackBar.open('Participation annulée', 'Fermer', { duration: 3000 });
+        this.load();
+        return;
+      }
+      if (result.error) {
+        this.snackBar.open(this.errorMessage(result.error), 'Fermer', { duration: 4000 });
+      }
+    });
+  }
+
+  private errorMessage(err: HttpErrorResponse): string {
+    if (err.status === 403) {
+      return "Vous n'êtes pas inscrit à ce match.";
+    }
+    if (err.status === 409) {
+      return 'Ce match a déjà commencé.';
+    }
+    return 'Une erreur est survenue. Veuillez réessayer.';
   }
 
   chipColor(statut: PaiementStatut): 'primary' | 'accent' | 'warn' | undefined {

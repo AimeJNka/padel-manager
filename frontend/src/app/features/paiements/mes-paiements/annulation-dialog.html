@@ -1,0 +1,64 @@
+<h2 mat-dialog-title>Annuler ma participation</h2>
+
+<mat-dialog-content>
+  @if (isEarlyCancel() && data.statut === 'EN_ATTENTE') {
+    <div class="msg-box msg-box--ok">
+      <mat-icon class="msg-icon msg-icon--ok">check_circle_outline</mat-icon>
+      <p>
+        Annulation gratuite. Aucune pénalité.<br>
+        Votre participation au match <span class="mono">#{{ data.idMatch }}</span>
+        du {{ matchDateLabel() }} sera annulée sans frais.
+      </p>
+    </div>
+  } @else if (isEarlyCancel() && data.statut === 'PAYE') {
+    <div class="msg-box msg-box--ok">
+      <mat-icon class="msg-icon msg-icon--ok">check_circle_outline</mat-icon>
+      <p>
+        Annulation gratuite. Vous serez remboursé.<br>
+        Votre participation au match <span class="mono">#{{ data.idMatch }}</span>
+        du {{ matchDateLabel() }} sera annulée et le montant payé remboursé.
+      </p>
+    </div>
+  } @else if (!isEarlyCancel() && data.statut === 'EN_ATTENTE') {
+    <div class="msg-box msg-box--warn">
+      <mat-icon class="msg-icon" color="warn">warning</mat-icon>
+      <p>
+        Annulation tardive. 15&nbsp;€ seront ajoutés à votre solde dû et une
+        pénalité de 7 jours sera appliquée.
+      </p>
+    </div>
+  } @else {
+    <div class="msg-box msg-box--warn">
+      <mat-icon class="msg-icon" color="warn">warning</mat-icon>
+      <p>
+        Annulation tardive. Le montant déjà payé est conservé comme frais d'annulation.
+        Pénalité de 7 jours appliquée. Aucun remboursement.
+      </p>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    (click)="cancel()"
+    [disabled]="isSubmitting()">
+    Annuler
+  </button>
+  <button
+    mat-stroked-button
+    color="warn"
+    type="button"
+    (click)="confirm()"
+    [disabled]="isSubmitting()">
+    @if (isSubmitting()) {
+      <mat-progress-spinner
+        mode="indeterminate"
+        diameter="18">
+      </mat-progress-spinner>
+    } @else {
+      Confirmer l'annulation
+    }
+  </button>
+</mat-dialog-actions>

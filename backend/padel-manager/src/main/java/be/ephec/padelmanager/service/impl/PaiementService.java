@@ -60,13 +60,13 @@ public class PaiementService implements IPaiementService {
         p.setMontant(montant);
         p.setSoldeInclus(BigDecimal.ZERO);
         p.setStatut("EN_ATTENTE");
-        p.setDatePaiement(LocalDateTime.now());
         paiementRepo.save(p);
     }
 
     @Override
     public void annulerPourParticipation(Participation participation) {
-        paiementRepo.findByParticipation(participation).ifPresent(p -> {
+        // SECURITY #12 — pessimistic lock: prevents concurrent match-cancel / late-cancel race
+        paiementRepo.findByParticipationForUpdate(participation).ifPresent(p -> {
             if (!"REMBOURSE".equals(p.getStatut()) && !"ANNULE".equals(p.getStatut())) {
                 p.setStatut("PAYE".equals(p.getStatut()) ? "REMBOURSE" : "ANNULE");
                 paiementRepo.save(p);
@@ -101,6 +101,7 @@ public class PaiementService implements IPaiementService {
         Membre membre = participation.getMembre();
 
         paiement.setStatut("PAYE");
+        paiement.setDatePaiement(LocalDateTime.now());
 
         BigDecimal soldeDu = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
         if (soldeDu.compareTo(BigDecimal.ZERO) > 0) {

@@ -42,6 +42,25 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   width: 100%;
 }
 
+/* ---------------------------------------------------------------------------
+   Typography utilities
+   ---------------------------------------------------------------------------
+   .mono     → monospace font for technical identifiers (match IDs, matricules,
+               payment IDs, ISO timestamps). Sans-serif for everything else.
+   .num      → right-aligned monospace for tabular numeric columns (money).
+   --------------------------------------------------------------------------- */
+
+.mono {
+  font-family: "JetBrains Mono", "IBM Plex Mono", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+  font-feature-settings: "tnum" 1;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Error and success message styles */
 .error-text {
   color: var(--mat-sys-error, #b00020);

@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.exception.BadRequestException;
+import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.model.Disponibilite;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.Membre;
@@ -170,14 +171,30 @@ class ParticipationServiceTest {
         service.annulerParticipation(ID_MATCH, authAs(MATRICULE));
 
         assertThat(participation.getStatut()).isEqualTo("ANNULEE");
-        // Payment already received → absorbed as late-cancel fee; status stays PAYE, no extra debt
-        assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        // Payment absorbed as late-cancel fee → paiement moves to ANNULE, no extra debt
+        assertThat(paiement.getStatut()).isEqualTo("ANNULE");
         assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
         verify(membreRepo, never()).save(participation.getMembre());
         verify(penaliteRepo, times(1)).save(any(Penalite.class));
     }
 
     // ── Validation errors ───────────────────────────
+
+    @Test
+    void annulerParticipation_notParticipant_throwsForbidden() {
+        // Non-participant calling DELETE must receive 403, not 404 (F-10: no state leak).
+        MatchPadel match = new MatchPadel();
+        match.setIdMatch(ID_MATCH);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(participationRepo.findByMatchPadelIdMatchAndMembreMatricule(ID_MATCH, MATRICULE))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.annulerParticipation(ID_MATCH, authAs(MATRICULE)))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(participationRepo, never()).save(any());
+        verify(paiementRepo, never()).save(any());
+    }
 
     @Test
     void annulerParticipation_alreadyCancelled() {
@@ -259,9 +276,9 @@ class ParticipationServiceTest {
     }
 
     @Test
-    void annulerParticipation_lateCancel_paid_noDebt() {
+    void annulerParticipation_lateCancel_paid_paymentAbsorbed() {
         // Duplicate-charge guard: late + PAYE must NOT add debt nor save the membre.
-        // Penalty is issued, paiement stays PAYE (absorbed as late-cancel fee).
+        // Penalty is issued, paiement moves to ANNULE (absorbed as late-cancel fee).
         LocalDateTime start = LocalDateTime.now().plusHours(5);
         Participation participation = buildParticipation(start, "PAYE", BigDecimal.ZERO, "EN_ATTENTE");
         Paiement paiement = paiementRepo.findByParticipation(participation).orElseThrow();
@@ -269,7 +286,7 @@ class ParticipationServiceTest {
         service.annulerParticipation(ID_MATCH, authAs(MATRICULE));
 
         assertThat(participation.getStatut()).isEqualTo("ANNULEE");
-        assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        assertThat(paiement.getStatut()).isEqualTo("ANNULE");
         assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
         verify(membreRepo, never()).save(any());
         verify(penaliteRepo, times(1)).save(any(Penalite.class));

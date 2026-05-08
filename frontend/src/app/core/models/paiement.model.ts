@@ -1,4 +1,5 @@
 export type PaiementStatut = 'EN_ATTENTE' | 'PAYE' | 'ANNULE' | 'REMBOURSE';
+export type MatchType = 'PRIVE' | 'PUBLIC';
 
 export interface Paiement {
   idPaiement: number;
@@ -8,6 +9,8 @@ export interface Paiement {
   nomJoueur: string;
   montant: number;
   soldeInclus: number;
-  datePaiement: string;
+  datePaiement: string | null;
   statut: PaiementStatut;
+  matchDateHeureDebut: string;
+  matchType: MatchType;
 }

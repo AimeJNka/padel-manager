@@ -31,7 +31,7 @@ public class PaiementController {
     }
 
     @PostMapping("/{id}/payer")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('GLOBAL','SITE','LIBRE')")
     public PaiementDTO payer(@PathVariable Integer id, Authentication auth) {
         return paiementService.payerParMembre(id, auth);
     }

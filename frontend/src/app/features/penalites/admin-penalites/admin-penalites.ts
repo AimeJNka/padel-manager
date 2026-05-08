@@ -13,9 +13,12 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
 
 import { PenaliteService } from '../../../core/services/penalite.service';
 import { Penalite } from '../../../core/models/penalite.model';
+import { AuthService } from '../../../core/services/auth.service';
+import { SiteService, Site } from '../../../core/services/site.service';
 
 @Component({
   selector: 'app-admin-penalites',
@@ -33,6 +36,7 @@ import { Penalite } from '../../../core/models/penalite.model';
     MatPaginatorModule,
     MatProgressBarModule,
     MatSnackBarModule,
+    MatSelectModule,
   ],
   templateUrl: './admin-penalites.html',
 })
@@ -41,10 +45,13 @@ export class AdminPenalites implements OnInit {
   private readonly penaliteService = inject(PenaliteService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly authService = inject(AuthService);
+  private readonly siteService = inject(SiteService);
 
   readonly filterForm = this.fb.group({
     matricule: [''],
     activeOnly: [false],
+    siteId: [null as number | null],
   });
 
   readonly penalites = signal<Penalite[]>([]);
@@ -52,6 +59,7 @@ export class AdminPenalites implements OnInit {
   readonly pageIndex = signal(0);
   readonly pageSize = signal(20);
   readonly isLoading = signal(false);
+  readonly sites = signal<Site[]>([]);
 
   readonly displayedColumns: string[] = [
     'nomJoueur',
@@ -63,7 +71,25 @@ export class AdminPenalites implements OnInit {
     'actions',
   ];
 
+  isGlobalAdmin(): boolean {
+    return this.authService.getRole() === 'ADMIN_GLOBAL';
+  }
+
+  emptyStateMessage(): string {
+    const siteId = this.filterForm.getRawValue().siteId;
+    if (this.isGlobalAdmin() && siteId !== null && siteId !== undefined) {
+      return 'Aucune pénalité pour ce site.';
+    }
+    return 'Aucune pénalité ne correspond aux filtres appliqués.';
+  }
+
   ngOnInit(): void {
+    if (this.isGlobalAdmin()) {
+      this.siteService.getSites().subscribe({
+        next: (s) => this.sites.set(s),
+        error: () => this.sites.set([]),
+      });
+    }
     this.load();
   }
 
@@ -75,6 +101,7 @@ export class AdminPenalites implements OnInit {
       .getAllPenalites({
         matricule: v.matricule,
         activeOnly: v.activeOnly,
+        siteId: this.isGlobalAdmin() ? v.siteId : null,
         page: this.pageIndex(),
         size: this.pageSize(),
       })
@@ -97,7 +124,7 @@ export class AdminPenalites implements OnInit {
   }
 
   onReset(): void {
-    this.filterForm.reset({ matricule: '', activeOnly: false });
+    this.filterForm.reset({ matricule: '', activeOnly: false, siteId: null });
     this.pageIndex.set(0);
     this.load();
   }

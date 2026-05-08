@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.service.impl;
 
 import be.ephec.padelmanager.exception.BadRequestException;
+import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
@@ -41,7 +42,8 @@ public class ParticipationService implements IParticipationService {
 
         Participation participation = participationRepo
                 .findByMatchPadelIdMatchAndMembreMatricule(idMatch, matricule)
-                .orElseThrow(() -> new NotFoundException("Participation introuvable"));
+                .orElseThrow(() -> new ForbiddenException(
+                        "Accès refusé : vous n'êtes pas inscrit à ce match."));
 
         if ("ANNULEE".equals(participation.getStatut())) {
             throw new BadRequestException("Participation déjà annulée");
@@ -62,16 +64,19 @@ public class ParticipationService implements IParticipationService {
 
         participation.setStatut("ANNULEE");
 
+        // Annulation tardive : si le paiement a été effectué, il est
+        // absorbé comme frais d'annulation et passe à ANNULE sans
+        // ajout de dette. Si le paiement était EN_ATTENTE, il passe
+        // à ANNULE et 15€ sont ajoutés au soldeDu.
         if (late) {
             Membre membre = participation.getMembre();
-            if (!"PAYE".equals(paiement.getStatut())) {
-                // Not yet paid — mark cancelled and charge the penalty fee as debt
-                paiement.setStatut("ANNULE");
+            boolean wasPaid = "PAYE".equals(paiement.getStatut());
+            paiement.setStatut("ANNULE");
+            if (!wasPaid) {
                 BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
                 membre.setSoldeDu(current.add(new BigDecimal("15.00")));
                 membreRepo.save(membre);
             }
-            // PAYE path: payment already received, absorbed as the late-cancel fee — no extra debt
             Penalite pen = new Penalite();
             pen.setMembre(membre);
             pen.setDateDebut(now);

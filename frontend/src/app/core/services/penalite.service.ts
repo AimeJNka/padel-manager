@@ -8,6 +8,7 @@ import { PageResponse } from '../models/page.model';
 export interface PenaliteQueryParams {
   matricule?: string | null;
   activeOnly?: boolean | null;
+  siteId?: number | null;
   page?: number | null;
   size?: number | null;
 }
@@ -26,6 +27,7 @@ export class PenaliteService {
     const entries: Array<[string, unknown]> = [
       ['matricule', params.matricule],
       ['activeOnly', params.activeOnly],
+      ['siteId', params.siteId],
       ['page', params.page],
       ['size', params.size],
     ];

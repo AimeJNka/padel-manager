@@ -31,6 +31,10 @@ export class PaiementService {
     return this.http.post<Paiement>(`/api/paiements/${id}/rembourser`, {});
   }
 
+  annulerParticipation(idMatch: number): Observable<void> {
+    return this.http.delete<void>(`/api/matchs/${idMatch}/participation`);
+  }
+
   getAllPaiements(params: PaiementQueryParams): Observable<PageResponse<Paiement>> {
     let httpParams = new HttpParams();
     const entries: Array<[string, unknown]> = [

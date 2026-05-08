@@ -87,7 +87,6 @@ class PaiementServiceTest {
         paiement.setMontant(new BigDecimal("15.00"));
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setStatut(statut);
-        paiement.setDatePaiement(LocalDateTime.now());
         return paiement;
     }
 
@@ -105,6 +104,7 @@ class PaiementServiceTest {
         PaiementDTO dto = service.payerParMembre(PAIEMENT_ID, authAs(OWNER));
 
         assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        assertThat(paiement.getDatePaiement()).isNotNull();
         assertThat(paiement.getParticipation().getStatut()).isEqualTo("CONFIRME");
         assertThat(paiement.getSoldeInclus()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(dto.statut()).isEqualTo("PAYE");

@@ -17,6 +17,11 @@ public interface PaiementRepo
 
     Optional<Paiement> findByParticipation(Participation participation);
 
+    /** Pessimistic write lock for concurrent match cancellation paths. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Paiement p WHERE p.participation = :participation")
+    Optional<Paiement> findByParticipationForUpdate(@Param("participation") Participation participation);
+
     Optional<Paiement> findByParticipationIdParticipation(Integer idParticipation);
 
     List<Paiement> findByParticipationMembreMatriculeOrderByDatePaiementDesc(String matricule);
