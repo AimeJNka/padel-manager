@@ -20,3 +20,8 @@ export interface RegisterRequest {
   idType: number;
   idSite?: number;
 }
+
+export interface RefreshResponse {
+  accessToken: string;
+  role: string;
+}

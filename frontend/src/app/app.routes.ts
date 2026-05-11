@@ -2,14 +2,10 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { isGlobalMembre, isSiteMembre, isLibreMembre, isAdminUser } from './core/guards/dashboard-redirect.guard';
 
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
-import { DashboardRedirect } from './features/dashboard/redirect/redirect';
-import { DashboardGlobal } from './features/dashboard/global/global';
-import { DashboardSite } from './features/dashboard/site/site';
-import { DashboardLibre } from './features/dashboard/libre/libre';
-import { DashboardAdmin } from './features/dashboard/admin/admin';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -17,33 +13,63 @@ export const routes: Routes = [
 
   {
     path: 'dashboard',
-    component: DashboardRedirect,
     canActivate: [authGuard],
-  },
-
-  {
-    path: 'dashboard/membre-global',
-    component: DashboardGlobal,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['GLOBAL'] },
-  },
-  {
-    path: 'dashboard/membre-site',
-    component: DashboardSite,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['SITE'] },
+    canMatch: [isGlobalMembre],
+    data: {
+      title: 'Tableau de bord — Membre Global',
+      description: 'Bienvenue sur votre espace membre global.',
+      links: [
+        { label: 'Mes paiements', route: '/mes-paiements' },
+        { label: 'Mes pénalités', route: '/mes-penalites' },
+      ],
+    },
+    loadComponent: () =>
+      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
   },
   {
-    path: 'dashboard/membre-libre',
-    component: DashboardLibre,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['LIBRE'] },
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isSiteMembre],
+    data: {
+      title: 'Tableau de bord — Membre Site',
+      description: 'Bienvenue sur votre espace membre site.',
+      links: [
+        { label: 'Mes paiements', route: '/mes-paiements' },
+        { label: 'Mes pénalités', route: '/mes-penalites' },
+      ],
+    },
+    loadComponent: () =>
+      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
   },
   {
-    path: 'dashboard/admin',
-    component: DashboardAdmin,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'] },
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isLibreMembre],
+    data: {
+      title: 'Tableau de bord — Membre Libre',
+      description: 'Bienvenue sur votre espace membre libre.',
+      links: [
+        { label: 'Mes paiements', route: '/mes-paiements' },
+        { label: 'Mes pénalités', route: '/mes-penalites' },
+      ],
+    },
+    loadComponent: () =>
+      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
+  },
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isAdminUser],
+    data: {
+      title: 'Tableau de bord — Administration',
+      description: "Bienvenue sur l'espace administrateur.",
+      links: [
+        { label: 'Gestion paiements', route: '/admin/paiements' },
+        { label: 'Gestion pénalités', route: '/admin/penalites' },
+      ],
+    },
+    loadComponent: () =>
+      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
   },
 
   {
