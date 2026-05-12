@@ -19,7 +19,6 @@ import {
 
 @Component({
   selector: 'app-mes-paiements',
-  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,

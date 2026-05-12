@@ -22,7 +22,6 @@ import { SiteService, Site } from '../../../core/services/site.service';
 
 @Component({
   selector: 'app-admin-penalites',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,

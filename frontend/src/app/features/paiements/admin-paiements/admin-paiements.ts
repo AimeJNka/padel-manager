@@ -20,7 +20,6 @@ import { Paiement, PaiementStatut } from '../../../core/models/paiement.model';
 
 @Component({
   selector: 'app-admin-paiements',
-  standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,

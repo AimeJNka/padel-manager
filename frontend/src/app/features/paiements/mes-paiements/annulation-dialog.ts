@@ -22,7 +22,6 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 @Component({
   selector: 'app-annulation-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     MatDialogModule,
