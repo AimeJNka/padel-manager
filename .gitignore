@@ -30,3 +30,4 @@ AI_team_work/
 .env
 .env.local
 .env.*.local
+.playwright-mcp/
