@@ -27,4 +27,5 @@ server:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:900000}
+  admin-expiration: ${JWT_ADMIN_EXPIRATION:7200000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
