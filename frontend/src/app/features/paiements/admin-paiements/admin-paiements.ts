@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { MatDialog } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -17,6 +18,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { AuthService } from '../../../core/services/auth.service';
 import { PaiementService } from '../../../core/services/paiement.service';
 import { Paiement, PaiementStatut } from '../../../core/models/paiement.model';
+import { ConfirmDialog, ConfirmDialogData } from '../../../shared/dialogs/confirm-dialog';
 
 @Component({
   selector: 'app-admin-paiements',
@@ -42,6 +44,7 @@ export class AdminPaiements implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   readonly filterForm = this.fb.group({
     matricule: [''],
@@ -126,17 +129,34 @@ export class AdminPaiements implements OnInit {
   }
 
   rembourser(id: number): void {
-    if (!window.confirm('Confirmer le remboursement de ce paiement ?')) {
-      return;
-    }
-    this.paiementService.rembourser(id).subscribe({
-      next: () => {
-        this.snackBar.open('Remboursement effectué', 'Fermer', { duration: 3000 });
-        this.load();
+    const paiement = this.paiements().find(p => p.idPaiement === id);
+    const dateLabel = paiement
+      ? new Date(paiement.matchDateHeureDebut).toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
+    const message = paiement
+      ? `Confirmer le remboursement de ${paiement.montant} € au joueur ${paiement.matricule} pour le match du ${dateLabel} ?`
+      : 'Confirmer le remboursement de ce paiement ?';
+
+    this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Rembourser ce paiement ?',
+        message,
+        confirmLabel: 'Rembourser',
+        destructive: true,
       },
-      error: (err: HttpErrorResponse) => {
-        this.snackBar.open(err.error?.error ?? 'Erreur', 'Fermer', { duration: 4000 });
-      },
+    }).afterClosed().subscribe((result) => {
+      if (result !== true) {
+        return;
+      }
+      this.paiementService.rembourser(id).subscribe({
+        next: () => {
+          this.snackBar.open('Remboursement effectué', 'Fermer', { duration: 3000 });
+          this.load();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.snackBar.open(err.error?.error ?? 'Erreur', 'Fermer', { duration: 4000 });
+        },
+      });
     });
   }
 

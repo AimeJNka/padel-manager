@@ -93,7 +93,7 @@
       @if (!isLoading() && penalites().length === 0) {
         <p>
           {{ emptyStateMessage() }}
-          <a href="#" (click)="onReset(); $event.preventDefault()">Réinitialiser les filtres</a>
+          <button type="button" mat-button (click)="onReset()">Réinitialiser les filtres</button>
         </p>
       }
 

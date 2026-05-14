@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { MatDialog } from '@angular/material/dialog';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,6 +20,7 @@ import { PenaliteService } from '../../../core/services/penalite.service';
 import { Penalite } from '../../../core/models/penalite.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { SiteService, Site } from '../../../core/services/site.service';
+import { ConfirmDialog, ConfirmDialogData } from '../../../shared/dialogs/confirm-dialog';
 
 @Component({
   selector: 'app-admin-penalites',
@@ -46,6 +48,7 @@ export class AdminPenalites implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly siteService = inject(SiteService);
+  private readonly dialog = inject(MatDialog);
 
   readonly filterForm = this.fb.group({
     matricule: [''],
@@ -135,17 +138,34 @@ export class AdminPenalites implements OnInit {
   }
 
   annuler(id: number): void {
-    if (!window.confirm('Confirmer l\'annulation de cette pénalité ?')) {
-      return;
-    }
-    this.penaliteService.annulerPenalite(id).subscribe({
-      next: () => {
-        this.snackBar.open('Pénalité annulée', 'Fermer', { duration: 3000 });
-        this.load();
+    const penalite = this.penalites().find(p => p.idPenalite === id);
+    const dateLabel = penalite
+      ? new Date(penalite.dateFin).toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '—';
+    const message = penalite
+      ? `Confirmer l'annulation de la pénalité de ${penalite.matricule} (active jusqu'au ${dateLabel}) ?`
+      : 'Confirmer l\'annulation de cette pénalité ?';
+
+    this.dialog.open<ConfirmDialog, ConfirmDialogData, boolean>(ConfirmDialog, {
+      data: {
+        title: 'Annuler cette pénalité ?',
+        message,
+        confirmLabel: 'Annuler la pénalité',
+        destructive: true,
       },
-      error: (err: HttpErrorResponse) => {
-        this.snackBar.open(err.error?.error ?? 'Erreur', 'Fermer', { duration: 4000 });
-      },
+    }).afterClosed().subscribe((result) => {
+      if (result !== true) {
+        return;
+      }
+      this.penaliteService.annulerPenalite(id).subscribe({
+        next: () => {
+          this.snackBar.open('Pénalité annulée', 'Fermer', { duration: 3000 });
+          this.load();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.snackBar.open(err.error?.error ?? 'Erreur', 'Fermer', { duration: 4000 });
+        },
+      });
     });
   }
 }
