@@ -15,61 +15,29 @@ export const routes: Routes = [
     path: 'dashboard',
     canActivate: [authGuard],
     canMatch: [isGlobalMembre],
-    data: {
-      title: 'Tableau de bord — Membre Global',
-      description: 'Bienvenue sur votre espace membre global.',
-      links: [
-        { label: 'Mes paiements', route: '/mes-paiements' },
-        { label: 'Mes pénalités', route: '/mes-penalites' },
-      ],
-    },
     loadComponent: () =>
-      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
+      import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
   },
   {
     path: 'dashboard',
     canActivate: [authGuard],
     canMatch: [isSiteMembre],
-    data: {
-      title: 'Tableau de bord — Membre Site',
-      description: 'Bienvenue sur votre espace membre site.',
-      links: [
-        { label: 'Mes paiements', route: '/mes-paiements' },
-        { label: 'Mes pénalités', route: '/mes-penalites' },
-      ],
-    },
     loadComponent: () =>
-      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
+      import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
   },
   {
     path: 'dashboard',
     canActivate: [authGuard],
     canMatch: [isLibreMembre],
-    data: {
-      title: 'Tableau de bord — Membre Libre',
-      description: 'Bienvenue sur votre espace membre libre.',
-      links: [
-        { label: 'Mes paiements', route: '/mes-paiements' },
-        { label: 'Mes pénalités', route: '/mes-penalites' },
-      ],
-    },
     loadComponent: () =>
-      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
+      import('./features/dashboard/dashboards/libre-member-dashboard/libre-member-dashboard').then(m => m.LibreMemberDashboard),
   },
   {
     path: 'dashboard',
     canActivate: [authGuard],
     canMatch: [isAdminUser],
-    data: {
-      title: 'Tableau de bord — Administration',
-      description: "Bienvenue sur l'espace administrateur.",
-      links: [
-        { label: 'Gestion paiements', route: '/admin/paiements' },
-        { label: 'Gestion pénalités', route: '/admin/penalites' },
-      ],
-    },
     loadComponent: () =>
-      import('./features/dashboard/components/dashboard-card/dashboard-card').then(m => m.DashboardCard),
+      import('./features/dashboard/dashboards/admin-dashboard/admin-dashboard').then(m => m.AdminDashboard),
   },
 
   {
