@@ -22,7 +22,6 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 
 @Component({
   selector: 'app-annulation-dialog',
-  standalone: true,
   imports: [
     CommonModule,
     MatDialogModule,
@@ -63,11 +62,10 @@ export class AnnulationDialog {
 
   readonly isSubmitting = signal(false);
 
-  /** True when the match starts in 24h or more — refund/cancel is free. */
-  readonly isEarlyCancel = computed<boolean>(() => {
-    const start = new Date(this.data.matchDateHeureDebut).getTime();
-    return start - Date.now() >= TWENTY_FOUR_HOURS_MS;
-  });
+  // isEarlyCancel reflects state at dialog open time; backend is source of truth for fee calculation.
+  readonly isEarlyCancel = signal<boolean>(
+    new Date(this.data.matchDateHeureDebut).getTime() - Date.now() >= TWENTY_FOUR_HOURS_MS
+  );
 
   /** Pre-formatted match date (e.g. "12/05/2026 à 14:00"). */
   readonly matchDateLabel = computed<string>(() => {

@@ -13,7 +13,6 @@ import { Penalite } from '../../../core/models/penalite.model';
 
 @Component({
   selector: 'app-mes-penalites',
-  standalone: true,
   imports: [
     CommonModule,
     MatCardModule,

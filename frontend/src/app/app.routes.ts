@@ -2,14 +2,10 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { isGlobalMembre, isSiteMembre, isLibreMembre, isAdminUser } from './core/guards/dashboard-redirect.guard';
 
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
-import { DashboardRedirect } from './features/dashboard/redirect/redirect';
-import { DashboardGlobal } from './features/dashboard/global/global';
-import { DashboardSite } from './features/dashboard/site/site';
-import { DashboardLibre } from './features/dashboard/libre/libre';
-import { DashboardAdmin } from './features/dashboard/admin/admin';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
@@ -17,33 +13,31 @@ export const routes: Routes = [
 
   {
     path: 'dashboard',
-    component: DashboardRedirect,
     canActivate: [authGuard],
-  },
-
-  {
-    path: 'dashboard/membre-global',
-    component: DashboardGlobal,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['GLOBAL'] },
+    canMatch: [isGlobalMembre],
+    loadComponent: () =>
+      import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
   },
   {
-    path: 'dashboard/membre-site',
-    component: DashboardSite,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['SITE'] },
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isSiteMembre],
+    loadComponent: () =>
+      import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
   },
   {
-    path: 'dashboard/membre-libre',
-    component: DashboardLibre,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['LIBRE'] },
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isLibreMembre],
+    loadComponent: () =>
+      import('./features/dashboard/dashboards/libre-member-dashboard/libre-member-dashboard').then(m => m.LibreMemberDashboard),
   },
   {
-    path: 'dashboard/admin',
-    component: DashboardAdmin,
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'] },
+    path: 'dashboard',
+    canActivate: [authGuard],
+    canMatch: [isAdminUser],
+    loadComponent: () =>
+      import('./features/dashboard/dashboards/admin-dashboard/admin-dashboard').then(m => m.AdminDashboard),
   },
 
   {

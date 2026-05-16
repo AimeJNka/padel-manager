@@ -121,7 +121,7 @@ public class AuthService implements IAuthService {
         }
 
         Integer idSite = admin.getSite() != null ? admin.getSite().getIdSite() : null;
-        String accessToken = jwtService.generateToken(
+        String accessToken = jwtService.generateAdminToken(
                 String.valueOf(admin.getIdAdmin()), admin.getRole(), idSite);
 
         AdminAuthResponseDTO response = new AdminAuthResponseDTO();

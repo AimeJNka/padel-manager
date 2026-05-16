@@ -20,6 +20,9 @@ public class JwtService implements IJwtService {
     @Value("${jwt.expiration}")
     private long expiration;
 
+    @Value("${jwt.admin-expiration}")
+    private long adminExpiration;
+
     @Override
     public String generateToken(String subject, String role) {
         return generateToken(subject, role, null);
@@ -32,6 +35,19 @@ public class JwtService implements IJwtService {
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey());
+        if (idSite != null) {
+            builder.claim("idSite", idSite);
+        }
+        return builder.compact();
+    }
+
+    public String generateAdminToken(String subject, String role, Integer idSite) {
+        var builder = Jwts.builder()
+                .subject(subject)
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + adminExpiration))
                 .signWith(getSigningKey());
         if (idSite != null) {
             builder.claim("idSite", idSite);
