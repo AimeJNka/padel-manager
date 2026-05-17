@@ -105,4 +105,4 @@ Package de base : `be.ephec.padelmanager` (abrégé `...` dans le tableau).
 - CDC section « Traitements Automatiques » (p. 49) : vue d'ensemble du module scheduler.
 - Document source : `docs/cdc/CDC_GestionTerrainPadle.pdf`.
 - ADR-0001 (`docs/adr/0001-sessions-admin-sans-refresh-token.md`) : référence de style et structure Nygard adoptée dans ce projet.
-- Commit d'implémentation Sprint 2A : `<commit-hash-2A>` *(à remplir par Aimé après commit)*.
+- Commit d'implémentation Sprint 2A : `c4ef09f`.
