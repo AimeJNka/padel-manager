@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.PenaliteDTO;
+import be.ephec.padelmanager.model.Membre;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -20,4 +21,6 @@ public interface IPenaliteService {
     );
 
     PenaliteDTO annulerPenalite(Integer idPenalite, Authentication auth);
+
+    void appliquerPenalite(Membre membre, int joursNb, String motif);
 }

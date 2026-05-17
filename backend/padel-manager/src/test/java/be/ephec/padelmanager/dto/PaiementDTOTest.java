@@ -2,8 +2,10 @@ package be.ephec.padelmanager.dto;
 
 import be.ephec.padelmanager.model.Disponibilite;
 import be.ephec.padelmanager.model.MatchPadel;
+import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +34,7 @@ class PaiementDTOTest {
         membre.setPersonne(null);
 
         LocalDateTime debut = LocalDateTime.now().plusDays(2);
-        MatchPadel match = matchWithDispo(1, debut, "PUBLIC");
+        MatchPadel match = matchWithDispo(1, debut, MatchType.PUBLIC);
 
         Participation participation = new Participation();
         participation.setIdParticipation(10);
@@ -45,14 +47,14 @@ class PaiementDTOTest {
         paiement.setMontant(BigDecimal.valueOf(15));
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setDatePaiement(LocalDateTime.now());
-        paiement.setStatut("PAYE");
+        paiement.setStatut(PaiementStatus.PAYE);
 
         PaiementDTO dto = PaiementDTO.from(paiement);
 
         assertThat(dto.nomJoueur()).isEqualTo("—");
         assertThat(dto.matricule()).isEqualTo("G0001");
         assertThat(dto.matchDateHeureDebut()).isEqualTo(debut);
-        assertThat(dto.matchType()).isEqualTo("PUBLIC");
+        assertThat(dto.matchType()).isEqualTo(MatchType.PUBLIC);
     }
 
     @Test
@@ -66,7 +68,7 @@ class PaiementDTOTest {
         membre.setPersonne(personne);
 
         LocalDateTime debut = LocalDateTime.now().plusHours(12);
-        MatchPadel match = matchWithDispo(2, debut, "PRIVE");
+        MatchPadel match = matchWithDispo(2, debut, MatchType.PRIVE);
 
         Participation participation = new Participation();
         participation.setIdParticipation(11);
@@ -79,12 +81,12 @@ class PaiementDTOTest {
         paiement.setMontant(BigDecimal.valueOf(15));
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setDatePaiement(LocalDateTime.now());
-        paiement.setStatut("PAYE");
+        paiement.setStatut(PaiementStatus.PAYE);
 
         PaiementDTO dto = PaiementDTO.from(paiement);
 
         assertThat(dto.nomJoueur()).isEqualTo("Alice Dupont");
         assertThat(dto.matchDateHeureDebut()).isEqualTo(debut);
-        assertThat(dto.matchType()).isEqualTo("PRIVE");
+        assertThat(dto.matchType()).isEqualTo(MatchType.PRIVE);
     }
 }

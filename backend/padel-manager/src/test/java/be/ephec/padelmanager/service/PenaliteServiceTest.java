@@ -12,6 +12,7 @@ import be.ephec.padelmanager.service.impl.PenaliteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -116,5 +117,44 @@ class PenaliteServiceTest {
                 .isInstanceOf(ForbiddenException.class);
 
         verify(penaliteRepo, never()).save(any());
+    }
+
+    // ── appliquerPenalite ────────────────────────────
+
+    @Test
+    void appliquerPenalite_savesWithCorrectDateFin() {
+        Membre membre = new Membre();
+        membre.setMatricule("G0042");
+
+        service.appliquerPenalite(membre, 7, "TEST");
+
+        ArgumentCaptor<Penalite> captor = ArgumentCaptor.forClass(Penalite.class);
+        verify(penaliteRepo, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getDateFin())
+                .isCloseTo(LocalDateTime.now().plusDays(7), within(2, ChronoUnit.SECONDS));
+    }
+
+    @Test
+    void appliquerPenalite_savesWithCorrectMotif() {
+        Membre membre = new Membre();
+        membre.setMatricule("G0042");
+
+        service.appliquerPenalite(membre, 7, "Match privé #5 incomplet — UC-03");
+
+        ArgumentCaptor<Penalite> captor = ArgumentCaptor.forClass(Penalite.class);
+        verify(penaliteRepo, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getMotif()).isEqualTo("Match privé #5 incomplet — UC-03");
+    }
+
+    @Test
+    void appliquerPenalite_savesWithCorrectMembre() {
+        Membre membre = new Membre();
+        membre.setMatricule("G0099");
+
+        service.appliquerPenalite(membre, 3, "MOTIF");
+
+        ArgumentCaptor<Penalite> captor = ArgumentCaptor.forClass(Penalite.class);
+        verify(penaliteRepo, times(1)).save(captor.capture());
+        assertThat(captor.getValue().getMembre().getMatricule()).isEqualTo("G0099");
     }
 }

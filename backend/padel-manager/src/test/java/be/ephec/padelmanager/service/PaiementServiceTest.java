@@ -6,7 +6,9 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PaiementRepo;
@@ -79,7 +81,7 @@ class PaiementServiceTest {
         participation.setIdParticipation(7);
         participation.setMembre(membre);
         participation.setMatchPadel(match);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
 
         Paiement paiement = new Paiement();
         paiement.setIdPaiement(PAIEMENT_ID);
@@ -98,16 +100,16 @@ class PaiementServiceTest {
 
     @Test
     void payerParMembre_success_soldeDuZero() {
-        Paiement paiement = buildPaiement("EN_ATTENTE", BigDecimal.ZERO, OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER);
         when(paiementRepo.findByIdForUpdate(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         PaiementDTO dto = service.payerParMembre(PAIEMENT_ID, authAs(OWNER));
 
-        assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.PAYE);
         assertThat(paiement.getDatePaiement()).isNotNull();
-        assertThat(paiement.getParticipation().getStatut()).isEqualTo("CONFIRME");
+        assertThat(paiement.getParticipation().getStatut()).isEqualTo(ParticipationStatus.CONFIRME);
         assertThat(paiement.getSoldeInclus()).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(dto.statut()).isEqualTo("PAYE");
+        assertThat(dto.statut()).isEqualTo(PaiementStatus.PAYE);
         verify(membreRepo, never()).save(any());
         verify(paiementRepo, times(1)).save(paiement);
         verify(participationRepo, times(1)).save(paiement.getParticipation());
@@ -115,12 +117,12 @@ class PaiementServiceTest {
 
     @Test
     void payerParMembre_success_soldeDuPositive() {
-        Paiement paiement = buildPaiement("EN_ATTENTE", new BigDecimal("20.00"), OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, new BigDecimal("20.00"), OWNER);
         when(paiementRepo.findByIdForUpdate(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         service.payerParMembre(PAIEMENT_ID, authAs(OWNER));
 
-        assertThat(paiement.getStatut()).isEqualTo("PAYE");
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.PAYE);
         assertThat(paiement.getSoldeInclus()).isEqualByComparingTo(new BigDecimal("20.00"));
         Membre membre = paiement.getParticipation().getMembre();
         assertThat(membre.getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
@@ -129,7 +131,7 @@ class PaiementServiceTest {
 
     @Test
     void payerParMembre_wrongOwner() {
-        Paiement paiement = buildPaiement("EN_ATTENTE", BigDecimal.ZERO, OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER);
         when(paiementRepo.findByIdForUpdate(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         assertThatThrownBy(() -> service.payerParMembre(PAIEMENT_ID, authAs("G9999")))
@@ -141,7 +143,7 @@ class PaiementServiceTest {
 
     @Test
     void payerParMembre_alreadyPaid() {
-        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.PAYE, BigDecimal.ZERO, OWNER);
         when(paiementRepo.findByIdForUpdate(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         assertThatThrownBy(() -> service.payerParMembre(PAIEMENT_ID, authAs(OWNER)))
@@ -155,7 +157,7 @@ class PaiementServiceTest {
 
     @Test
     void rembourserPaiement_success() {
-        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.PAYE, BigDecimal.ZERO, OWNER);
         when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         Authentication adminGlobal =
@@ -163,14 +165,14 @@ class PaiementServiceTest {
 
         PaiementDTO dto = service.rembourserPaiement(PAIEMENT_ID, adminGlobal);
 
-        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
-        assertThat(dto.statut()).isEqualTo("REMBOURSE");
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.REMBOURSE);
+        assertThat(dto.statut()).isEqualTo(PaiementStatus.REMBOURSE);
         verify(paiementRepo, times(1)).save(paiement);
     }
 
     @Test
     void rembourserPaiement_notPaid() {
-        Paiement paiement = buildPaiement("EN_ATTENTE", BigDecimal.ZERO, OWNER);
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER);
         when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         Authentication adminGlobal =
@@ -186,8 +188,8 @@ class PaiementServiceTest {
     void rembourserPaiement_whenParticipationNotConfirme_doesNotSave() {
         // Participation is EN_ATTENTE (no prior confirmation), paiement is PAYE.
         // Refund must NOT touch the participation: participationRepo.save never called.
-        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
-        paiement.getParticipation().setStatut("EN_ATTENTE");
+        Paiement paiement = buildPaiement(PaiementStatus.PAYE, BigDecimal.ZERO, OWNER);
+        paiement.getParticipation().setStatut(ParticipationStatus.EN_ATTENTE);
         when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         Authentication adminGlobal =
@@ -195,8 +197,8 @@ class PaiementServiceTest {
 
         service.rembourserPaiement(PAIEMENT_ID, adminGlobal);
 
-        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
-        assertThat(paiement.getParticipation().getStatut()).isEqualTo("EN_ATTENTE");
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.REMBOURSE);
+        assertThat(paiement.getParticipation().getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
         verify(paiementRepo, times(1)).save(paiement);
         verify(participationRepo, never()).save(any());
     }
@@ -205,8 +207,8 @@ class PaiementServiceTest {
     void rembourserPaiement_whenParticipationConfirme_setsEnAttente() {
         // Participation is CONFIRME, paiement is PAYE.
         // Refund downgrades the participation to EN_ATTENTE and saves it once.
-        Paiement paiement = buildPaiement("PAYE", BigDecimal.ZERO, OWNER);
-        paiement.getParticipation().setStatut("CONFIRME");
+        Paiement paiement = buildPaiement(PaiementStatus.PAYE, BigDecimal.ZERO, OWNER);
+        paiement.getParticipation().setStatut(ParticipationStatus.CONFIRME);
         when(paiementRepo.findById(PAIEMENT_ID)).thenReturn(Optional.of(paiement));
 
         Authentication adminGlobal =
@@ -214,8 +216,8 @@ class PaiementServiceTest {
 
         service.rembourserPaiement(PAIEMENT_ID, adminGlobal);
 
-        assertThat(paiement.getStatut()).isEqualTo("REMBOURSE");
-        assertThat(paiement.getParticipation().getStatut()).isEqualTo("EN_ATTENTE");
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.REMBOURSE);
+        assertThat(paiement.getParticipation().getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
         verify(paiementRepo, times(1)).save(paiement);
         verify(participationRepo, times(1)).save(paiement.getParticipation());
     }

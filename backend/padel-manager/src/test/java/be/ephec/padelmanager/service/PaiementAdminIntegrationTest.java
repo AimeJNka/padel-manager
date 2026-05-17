@@ -3,9 +3,13 @@ package be.ephec.padelmanager.service;
 import be.ephec.padelmanager.dto.PaiementDTO;
 import be.ephec.padelmanager.model.Disponibilite;
 import be.ephec.padelmanager.model.MatchPadel;
+import be.ephec.padelmanager.model.MatchStatus;
+import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Terrain;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
@@ -81,8 +85,8 @@ class PaiementAdminIntegrationTest {
         MatchPadel match = new MatchPadel();
         match.setDisponibilite(dispo);
         match.setOrganisateur(membre);
-        match.setTypeMatch("PUBLIC");
-        match.setStatut("EN_ATTENTE");
+        match.setTypeMatch(MatchType.PUBLIC);
+        match.setStatut(MatchStatus.EN_ATTENTE);
         match.setMontantTotal(new BigDecimal("60.00"));
         match.setDateCreation(LocalDateTime.now());
         matchPadelRepo.save(match);
@@ -90,7 +94,7 @@ class PaiementAdminIntegrationTest {
         Participation participation = new Participation();
         participation.setMatchPadel(match);
         participation.setMembre(membre);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
 
@@ -98,7 +102,7 @@ class PaiementAdminIntegrationTest {
         paiement.setParticipation(participation);
         paiement.setMontant(new BigDecimal("15.00"));
         paiement.setSoldeInclus(BigDecimal.ZERO);
-        paiement.setStatut("EN_ATTENTE");
+        paiement.setStatut(PaiementStatus.EN_ATTENTE);
         paiement.setDatePaiement(LocalDateTime.now());
         return paiementRepo.save(paiement);
     }

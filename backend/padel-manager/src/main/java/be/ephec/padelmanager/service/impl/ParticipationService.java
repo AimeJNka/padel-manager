@@ -5,7 +5,9 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Penalite;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
 import be.ephec.padelmanager.repository.MembreRepo;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 @Transactional
@@ -32,6 +35,33 @@ public class ParticipationService implements IParticipationService {
     private final PaiementRepo paiementRepo;
     private final MembreRepo membreRepo;
     private final PenaliteRepo penaliteRepo;
+
+    /**
+     * Job 2 — Libère les places non payées (CF-M-006).
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seules les participations EN_ATTENTE sont interrogées ;
+     * après libération elles passent à ANNULEE et ne sont plus retraitées.
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si une participation parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucune participation n'est libérée ce tick-ci. Une isolation
+     * par-participation (REQUIRES_NEW via bean helper) serait une amélioration
+     * mais sort du périmètre de Sprint 2B.
+     * </p>
+     */
+    @Override
+    public int libererPlacesNonPayees() {
+        List<Participation> aLiberer = participationRepo.findByStatutAndMatchDispoDebutBefore(
+                ParticipationStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+        if (aLiberer.isEmpty()) {
+            return 0;
+        }
+        for (Participation p : aLiberer) {
+            p.setStatut(ParticipationStatus.ANNULEE);
+        }
+        participationRepo.saveAll(aLiberer);
+        return aLiberer.size();
+    }
 
     @Override
     public void annulerParticipation(Integer idMatch, Authentication auth) {
@@ -45,7 +75,7 @@ public class ParticipationService implements IParticipationService {
                 .orElseThrow(() -> new ForbiddenException(
                         "Accès refusé : vous n'êtes pas inscrit à ce match."));
 
-        if ("ANNULEE".equals(participation.getStatut())) {
+        if (ParticipationStatus.ANNULEE.equals(participation.getStatut())) {
             throw new BadRequestException("Participation déjà annulée");
         }
 
@@ -62,7 +92,7 @@ public class ParticipationService implements IParticipationService {
         long hoursUntilMatch = ChronoUnit.HOURS.between(now, debut);
         boolean late = hoursUntilMatch < 24L;
 
-        participation.setStatut("ANNULEE");
+        participation.setStatut(ParticipationStatus.ANNULEE);
 
         // Annulation tardive : si le paiement a été effectué, il est
         // absorbé comme frais d'annulation et passe à ANNULE sans
@@ -70,8 +100,8 @@ public class ParticipationService implements IParticipationService {
         // à ANNULE et 15€ sont ajoutés au soldeDu.
         if (late) {
             Membre membre = participation.getMembre();
-            boolean wasPaid = "PAYE".equals(paiement.getStatut());
-            paiement.setStatut("ANNULE");
+            boolean wasPaid = PaiementStatus.PAYE.equals(paiement.getStatut());
+            paiement.setStatut(PaiementStatus.ANNULE);
             if (!wasPaid) {
                 BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
                 membre.setSoldeDu(current.add(new BigDecimal("15.00")));
@@ -84,10 +114,10 @@ public class ParticipationService implements IParticipationService {
             pen.setMotif("ANNULATION_TARDIVE");
             penaliteRepo.save(pen);
         } else {
-            if ("PAYE".equals(paiement.getStatut())) {
-                paiement.setStatut("REMBOURSE");
+            if (PaiementStatus.PAYE.equals(paiement.getStatut())) {
+                paiement.setStatut(PaiementStatus.REMBOURSE);
             } else {
-                paiement.setStatut("ANNULE");
+                paiement.setStatut(PaiementStatus.ANNULE);
             }
         }
 

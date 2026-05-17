@@ -5,12 +5,15 @@ import be.ephec.padelmanager.dto.PenaliteDTO;
 import be.ephec.padelmanager.exception.ConflictException;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
+import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Penalite;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IPenaliteService;
 import be.ephec.padelmanager.service.SiteAccessChecker;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,6 +29,8 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class PenaliteService implements IPenaliteService {
+
+    private static final Logger log = LoggerFactory.getLogger(PenaliteService.class);
 
     private final PenaliteRepo penaliteRepo;
     private final SiteAccessChecker siteAccessChecker;
@@ -93,6 +98,18 @@ public class PenaliteService implements IPenaliteService {
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    @Override
+    public void appliquerPenalite(Membre membre, int joursNb, String motif) {
+        LocalDateTime now = LocalDateTime.now();
+        Penalite pen = new Penalite();
+        pen.setMembre(membre);
+        pen.setDateDebut(now);
+        pen.setDateFin(now.plusDays(joursNb));
+        pen.setMotif(motif);
+        penaliteRepo.save(pen);
+        log.debug("[PenaliteService] Pénalité créée : membre={}, dateFin={}", membre.getMatricule(), pen.getDateFin());
     }
 
     private void checkSiteAccess(Penalite pen, Authentication auth) {

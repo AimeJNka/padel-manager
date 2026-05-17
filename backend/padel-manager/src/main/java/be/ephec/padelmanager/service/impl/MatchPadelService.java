@@ -13,7 +13,10 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
 import be.ephec.padelmanager.model.MatchPadel;
+import be.ephec.padelmanager.model.MatchStatus;
+import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Participation;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
@@ -22,6 +25,7 @@ import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
+import be.ephec.padelmanager.service.IPenaliteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -31,11 +35,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class MatchPadelService implements IMatchPadelService {
+
+    private static final Logger log = LoggerFactory.getLogger(MatchPadelService.class);
+    private static final BigDecimal PRIX_PLACE_EUR = BigDecimal.valueOf(15);
 
     private final MatchPadelRepo matchPadelRepo;
     private final ParticipationRepo participationRepo;
@@ -43,13 +52,14 @@ public class MatchPadelService implements IMatchPadelService {
     private final MembreRepo membreRepo;
     private final PenaliteRepo penaliteRepo;
     private final IPaiementService paiementService;
+    private final IPenaliteService penaliteService;
 
     @Override
     public MatchPadelDTO creerMatchPrive(Integer dispoId, Authentication auth) {
         Membre organisateur = resolveMembre(auth);
         Disponibilite dispo = resolveDisponibilite(dispoId);
         verifierConditionsCreation(organisateur, dispo);
-        return creerMatch(organisateur, dispo, "PRIVE");
+        return creerMatch(organisateur, dispo, MatchType.PRIVE);
     }
 
     @Override
@@ -57,20 +67,20 @@ public class MatchPadelService implements IMatchPadelService {
         Membre organisateur = resolveMembre(auth);
         Disponibilite dispo = resolveDisponibilite(dispoId);
         verifierConditionsCreation(organisateur, dispo);
-        return creerMatch(organisateur, dispo, "PUBLIC");
+        return creerMatch(organisateur, dispo, MatchType.PUBLIC);
     }
 
     @Override
     public void ajouterJoueur(Integer idMatch, String matriculeJoueur, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est annulé");
         }
         if (match.getOrganisateur() == null
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut ajouter un joueur");
         }
-        if ("PUBLIC".equals(match.getTypeMatch())) {
+        if (MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException(
                     "CF-M-010 : l'organisateur ne peut pas ajouter directement un joueur à un match public");
         }
@@ -86,14 +96,14 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, joueur.getMatricule())) {
             throw new ConflictException("Le joueur est déjà inscrit au match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, "ANNULEE") >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
         Participation participation = new Participation();
         participation.setMatchPadel(match);
         participation.setMembre(joueur);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
@@ -102,10 +112,10 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public void sInscrireMatchPublic(Integer idMatch, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if (!"PUBLIC".equals(match.getTypeMatch())) {
+        if (!MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException("Le match n'est pas public");
         }
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est annulé");
         }
         Membre membre = resolveMembre(auth);
@@ -138,14 +148,14 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, membre.getMatricule())) {
             throw new ConflictException("Vous êtes déjà inscrit à ce match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, "ANNULEE") >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
         Participation participation = new Participation();
         participation.setMatchPadel(match);
         participation.setMembre(membre);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
@@ -158,7 +168,7 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut annuler le match");
         }
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est déjà annulé");
         }
 
@@ -167,7 +177,7 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 24 : 48;
+        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? 24 : 48;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
@@ -178,13 +188,98 @@ public class MatchPadelService implements IMatchPadelService {
 
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
         for (Participation p : participations) {
-            p.setStatut("ANNULEE");
+            p.setStatut(ParticipationStatus.ANNULEE);
             paiementService.annulerPourParticipation(p);
         }
         participationRepo.saveAll(participations);
 
-        match.setStatut("ANNULE");
+        match.setStatut(MatchStatus.ANNULE);
         matchPadelRepo.save(match);
+    }
+
+    /**
+     * Job 1 — Bascule les matchs privés incomplets en PUBLIC (CF-M-004/CF-M-005).
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs PRIVE+EN_ATTENTE sont interrogés ;
+     * après bascule ils deviennent PUBLIC et ne sont plus retraités.
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est basculé ce tick-ci. Une isolation
+     * par-match (REQUIRES_NEW via bean helper) serait une amélioration
+     * mais sort du périmètre de Sprint 2B.
+     * </p>
+     */
+    @Override
+    public int basculerMatchesIncomplets() {
+        List<MatchPadel> candidats = matchPadelRepo.findByTypeMatchAndStatutAndDispoDebutBefore(
+                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+        int count = 0;
+        for (MatchPadel match : candidats) {
+            long confirmes = participationRepo.countByMatchIdAndStatut(
+                    match.getIdMatch(), ParticipationStatus.CONFIRME);
+            if (confirmes < 4) {
+                match.setTypeMatch(MatchType.PUBLIC);
+                // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+                matchPadelRepo.save(match);
+                penaliteService.appliquerPenalite(
+                        match.getOrganisateur(), 7,
+                        String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Job 3 — Calcule le solde dû par l'organisateur pour les places vides
+     * au démarrage du match (CF-M-007) et marque le match comme DEMARRE.
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs EN_ATTENTE dont le créneau a démarré
+     * sont interrogés ; après traitement ils passent à DEMARRE et ne sont
+     * plus retraités.
+     * <p>
+     * <b>Règle métier :</b> placesVides = 4 − count(participations CONFIRME).
+     * Le soldeDu de l'organisateur est incrémenté de (placesVides × 15€).
+     * La place de l'organisateur lui-même est comptée comme vide s'il n'a
+     * pas confirmé sa participation (pas d'exception, conforme CF-M-007).
+     * </p>
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est marqué DEMARRE ce tick-ci. Une
+     * isolation par-match (REQUIRES_NEW via bean helper) serait une
+     * amélioration mais sort du périmètre de Sprint 2C.
+     * </p>
+     *
+     * @return le nombre de matchs effectivement traités (transitionnés vers DEMARRE)
+     */
+    @Override
+    public int traiterSoldeMatchesDemarres() {
+        List<MatchPadel> eligibles = matchPadelRepo.findStartedMatchesByStatut(
+                MatchStatus.EN_ATTENTE, LocalDateTime.now());
+        log.info("[Job 3] {} match(es) éligible(s) pour calcul de solde", eligibles.size());
+        int count = 0;
+        for (MatchPadel match : eligibles) {
+            long confirmes = participationRepo.countByMatchIdAndStatut(
+                    match.getIdMatch(), ParticipationStatus.CONFIRME);
+            int placesVides = Math.max(0, 4 - (int) confirmes);
+            if (placesVides > 0) {
+                BigDecimal soldeAjout = PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
+                Membre organisateur = match.getOrganisateur();
+                BigDecimal actuel = organisateur.getSoldeDu() != null
+                        ? organisateur.getSoldeDu() : BigDecimal.ZERO;
+                organisateur.setSoldeDu(actuel.add(soldeAjout));
+                // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+                membreRepo.save(organisateur);
+            }
+            match.setStatut(MatchStatus.DEMARRE);
+            // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+            matchPadelRepo.save(match);
+            count++;
+        }
+        log.info("[Job 3] {} match(es) traité(s), marqués DEMARRE", count);
+        return count;
     }
 
     private void verifierConditionsCreation(Membre membre, Disponibilite dispo) {
@@ -226,7 +321,7 @@ public class MatchPadelService implements IMatchPadelService {
         match.setDisponibilite(dispo);
         match.setOrganisateur(organisateur);
         match.setTypeMatch(typeMatch);
-        match.setStatut("EN_ATTENTE");
+        match.setStatut(MatchStatus.EN_ATTENTE);
         match.setMontantTotal(new BigDecimal("60.00"));
         match.setDateCreation(LocalDateTime.now());
         MatchPadel saved = matchPadelRepo.save(match);
@@ -234,7 +329,7 @@ public class MatchPadelService implements IMatchPadelService {
         Participation participation = new Participation();
         participation.setMatchPadel(saved);
         participation.setMembre(organisateur);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
