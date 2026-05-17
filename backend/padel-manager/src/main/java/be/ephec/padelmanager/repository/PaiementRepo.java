@@ -22,8 +22,6 @@ public interface PaiementRepo
     @Query("SELECT p FROM Paiement p WHERE p.participation = :participation")
     Optional<Paiement> findByParticipationForUpdate(@Param("participation") Participation participation);
 
-    Optional<Paiement> findByParticipationIdParticipation(Integer idParticipation);
-
     List<Paiement> findByParticipationMembreMatriculeOrderByDatePaiementDesc(String matricule);
 
     /**

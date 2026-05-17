@@ -12,6 +12,7 @@ import be.ephec.padelmanager.exception.ConflictException;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -27,6 +28,7 @@ import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
 import be.ephec.padelmanager.service.IPenaliteService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,15 +37,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class MatchPadelService implements IMatchPadelService {
 
-    private static final Logger log = LoggerFactory.getLogger(MatchPadelService.class);
     private static final BigDecimal PRIX_PLACE_EUR = BigDecimal.valueOf(15);
 
     private final MatchPadelRepo matchPadelRepo;
@@ -183,7 +183,7 @@ public class MatchPadelService implements IMatchPadelService {
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
         }
 
-        dispo.setStatut("LIBRE");
+        dispo.setStatut(DisponibiliteStatus.LIBRE);
         disponibiliteRepo.save(dispo);
 
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
@@ -293,7 +293,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (membre.getSoldeDu() != null && membre.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Vous avez un solde dû");
         }
-        if (!"LIBRE".equals(dispo.getStatut())) {
+        if (!DisponibiliteStatus.LIBRE.equals(dispo.getStatut())) {
             throw new ConflictException("Le créneau n'est pas disponible");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -314,7 +314,7 @@ public class MatchPadelService implements IMatchPadelService {
     }
 
     private MatchPadelDTO creerMatch(Membre organisateur, Disponibilite dispo, String typeMatch) {
-        dispo.setStatut("RESERVE");
+        dispo.setStatut(DisponibiliteStatus.RESERVE);
         disponibiliteRepo.save(dispo);
 
         MatchPadel match = new MatchPadel();

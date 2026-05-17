@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.scheduler;
 
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -168,7 +169,7 @@ class MatchSchedulerIntegrationTest {
         dispo.setTerrain(terrainRepo.findById(terrainId).orElseThrow());
         dispo.setDateHeureDebut(debut);
         dispo.setDateHeureFin(debut.plusMinutes(90));
-        dispo.setStatut("RESERVE");
+        dispo.setStatut(DisponibiliteStatus.RESERVE);
         return disponibiliteRepo.save(dispo);
     }
 

@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,7 +111,7 @@ class DisponibiliteIntegrationTest {
                         LocalDateTime.of(2026, 1, 2, 0, 0),
                         LocalDateTime.of(2026, 1, 2, 23, 59));
         jan2Slots.subList(0, 3).forEach(d -> {
-            d.setStatut("RESERVE");
+            d.setStatut(DisponibiliteStatus.RESERVE);
             disponibiliteRepo.save(d);
         });
 
@@ -126,7 +127,7 @@ class DisponibiliteIntegrationTest {
                         LocalDateTime.of(2026, 1, 1, 0, 0),
                         LocalDateTime.of(2026, 12, 31, 23, 59))
                 .stream()
-                .filter(d -> "RESERVE".equals(d.getStatut()))
+                .filter(d -> DisponibiliteStatus.RESERVE.equals(d.getStatut()))
                 .count();
         assertThat(reserveCount).isEqualTo(3);
     }

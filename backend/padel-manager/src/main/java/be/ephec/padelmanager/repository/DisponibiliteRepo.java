@@ -15,6 +15,7 @@ public interface DisponibiliteRepo extends JpaRepository<Disponibilite, Integer>
     List<Disponibilite> findByTerrainSiteIdSiteAndDateHeureDebutBetween(
             Integer siteId, LocalDateTime start, LocalDateTime end);
 
+    // NOTE: 'LIBRE' here mirrors DisponibiliteStatus.LIBRE — JPQL cannot reference Java constants. Keep in sync.
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("DELETE FROM Disponibilite d WHERE d.terrain.site.idSite = :siteId " +

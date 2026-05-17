@@ -3,16 +3,14 @@ package be.ephec.padelmanager.scheduler;
 import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IParticipationService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class MatchScheduler {
-
-    private static final Logger log = LoggerFactory.getLogger(MatchScheduler.class);
 
     private final IParticipationService participationService;
     private final IMatchPadelService    matchPadelService;

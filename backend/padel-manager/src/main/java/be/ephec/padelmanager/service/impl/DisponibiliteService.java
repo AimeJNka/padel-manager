@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service.impl;
 
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.FermeturePonctuelle;
 import be.ephec.padelmanager.model.FermetureRecurrente;
 import be.ephec.padelmanager.model.HoraireAnnuel;
@@ -15,6 +16,7 @@ import be.ephec.padelmanager.repository.TerrainRepo;
 import be.ephec.padelmanager.service.IDisponibiliteService;
 import be.ephec.padelmanager.service.SiteAccessChecker;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -61,7 +64,7 @@ public class DisponibiliteService implements IDisponibiliteService {
         Set<String> reservedKeys = disponibiliteRepo
                 .findByTerrainSiteIdSiteAndDateHeureDebutBetween(siteId, yearStart, yearEnd)
                 .stream()
-                .filter(d -> "RESERVE".equals(d.getStatut()))
+                .filter(d -> DisponibiliteStatus.RESERVE.equals(d.getStatut()))
                 .map(d -> d.getTerrain().getIdTerrain() + "_" + d.getDateHeureDebut())
                 .collect(Collectors.toSet());
 
@@ -114,7 +117,7 @@ public class DisponibiliteService implements IDisponibiliteService {
                         disponibilite.setTerrain(terrain);
                         disponibilite.setDateHeureDebut(slotStart);
                         disponibilite.setDateHeureFin(slotStart.plus(SLOT_DURATION));
-                        disponibilite.setStatut("LIBRE");
+                        disponibilite.setStatut(DisponibiliteStatus.LIBRE);
                         newDispos.add(disponibilite);
                     }
                     slotStart = slotStart.plus(SLOT_STEP);

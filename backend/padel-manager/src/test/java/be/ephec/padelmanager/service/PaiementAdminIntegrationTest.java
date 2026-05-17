@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.PaiementDTO;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -79,7 +80,7 @@ class PaiementAdminIntegrationTest {
         dispo.setTerrain(terrain);
         dispo.setDateHeureDebut(LocalDateTime.now().plusDays(2));
         dispo.setDateHeureFin(LocalDateTime.now().plusDays(2).plusMinutes(90));
-        dispo.setStatut("RESERVE");
+        dispo.setStatut(DisponibiliteStatus.RESERVE);
         disponibiliteRepo.save(dispo);
 
         MatchPadel match = new MatchPadel();

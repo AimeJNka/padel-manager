@@ -23,7 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/matchs")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('GLOBAL', 'SITE', 'LIBRE')")
+@PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
 public class MatchController {
 
     private final IMatchPadelService matchPadelService;
@@ -57,6 +57,7 @@ public class MatchController {
     }
 
     @PostMapping("/{id}/inscription")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE', 'LIBRE')")
     public ResponseEntity<Map<String, String>> sInscrireMatchPublic(
             @PathVariable Integer id,
             Authentication auth) {
@@ -73,6 +74,7 @@ public class MatchController {
     }
 
     @DeleteMapping("/{idMatch}/participation")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE', 'LIBRE')")
     public ResponseEntity<Void> annulerParticipation(
             @PathVariable Integer idMatch,
             Authentication auth) {

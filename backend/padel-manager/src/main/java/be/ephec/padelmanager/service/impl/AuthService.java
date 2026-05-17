@@ -3,10 +3,10 @@ package be.ephec.padelmanager.service.impl;
 import be.ephec.padelmanager.dto.auth.AdminAuthResponseDTO;
 import be.ephec.padelmanager.dto.auth.AdminLoginDTO;
 import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
-import be.ephec.padelmanager.dto.auth.LoginDTO;
+import be.ephec.padelmanager.dto.auth.LoginRequest;
 import be.ephec.padelmanager.dto.auth.RefreshResponseDTO;
 import be.ephec.padelmanager.dto.RefreshTokenDTO;
-import be.ephec.padelmanager.dto.auth.RegisterDTO;
+import be.ephec.padelmanager.dto.auth.RegisterRequest;
 import be.ephec.padelmanager.model.Admin;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Personne;
@@ -23,6 +23,7 @@ import be.ephec.padelmanager.service.IRefreshTokenService;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService implements IAuthService {
@@ -45,7 +47,7 @@ public class AuthService implements IAuthService {
 
     @Override
     @Transactional
-    public AuthResponseDTO login(LoginDTO dto) {
+    public AuthResponseDTO login(LoginRequest dto) {
         Membre membre = membreRepo.findById(dto.getMatricule())
                 .orElseThrow(() -> new UnauthorizedException("Matricule ou mot de passe incorrect"));
 
@@ -69,7 +71,7 @@ public class AuthService implements IAuthService {
 
     @Override
     @Transactional
-    public AuthResponseDTO register(RegisterDTO dto) {
+    public AuthResponseDTO register(RegisterRequest dto) {
         TypeMembre typeMembre = typeMembreRepo.findById(dto.getIdType())
                 .orElseThrow(() -> new NotFoundException("Type de membre introuvable"));
 

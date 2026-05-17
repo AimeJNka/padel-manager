@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class RegisterDTO {
+public class RegisterRequest {
     @NotBlank
     private String motDePasse;
 

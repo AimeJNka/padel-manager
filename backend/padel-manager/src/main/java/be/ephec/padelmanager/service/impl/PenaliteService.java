@@ -12,8 +12,7 @@ import be.ephec.padelmanager.service.IPenaliteService;
 import be.ephec.padelmanager.service.SiteAccessChecker;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -25,12 +24,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class PenaliteService implements IPenaliteService {
-
-    private static final Logger log = LoggerFactory.getLogger(PenaliteService.class);
 
     private final PenaliteRepo penaliteRepo;
     private final SiteAccessChecker siteAccessChecker;

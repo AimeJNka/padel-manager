@@ -3,13 +3,14 @@ package be.ephec.padelmanager.controller;
 import be.ephec.padelmanager.dto.auth.AdminAuthResponseDTO;
 import be.ephec.padelmanager.dto.auth.AdminLoginDTO;
 import be.ephec.padelmanager.dto.auth.AuthResponseDTO;
-import be.ephec.padelmanager.dto.auth.LoginDTO;
+import be.ephec.padelmanager.dto.auth.LoginRequest;
 import be.ephec.padelmanager.dto.auth.RefreshRequestDTO;
 import be.ephec.padelmanager.dto.auth.RefreshResponseDTO;
-import be.ephec.padelmanager.dto.auth.RegisterDTO;
+import be.ephec.padelmanager.dto.auth.RegisterRequest;
 import be.ephec.padelmanager.service.IAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -24,13 +25,13 @@ public class AuthController {
     private final IAuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginDTO dto) {
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequest dto) {
         return ResponseEntity.ok(authService.login(dto));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterDTO dto) {
-        return ResponseEntity.ok(authService.register(dto));
+    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody RegisterRequest dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(dto));
     }
 
     @PostMapping("/admin/login")

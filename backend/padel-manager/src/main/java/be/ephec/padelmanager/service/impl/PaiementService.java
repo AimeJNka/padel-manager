@@ -18,6 +18,7 @@ import be.ephec.padelmanager.service.SiteAccessChecker;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -43,6 +44,7 @@ import java.util.List;
  * Risk: audit trail does not distinguish "never paid" from "paid and absorbed as penalty".
  * Deferred to M9: introduce paiement_audit log or ABSORBE_PENALITE status.
  */
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor

@@ -6,6 +6,7 @@ import be.ephec.padelmanager.service.IFermeturePonctuelleService;
 import be.ephec.padelmanager.service.IFermetureRecurrenteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -32,7 +33,7 @@ public class FermetureController {
             @PathVariable Integer idSite,
             @Valid @RequestBody FermetureRecurrenteDTO dto,
             Authentication authentication) {
-        return ResponseEntity.ok(fermetureRecurrenteService.create(idSite, dto, authentication));
+        return ResponseEntity.status(HttpStatus.CREATED).body(fermetureRecurrenteService.create(idSite, dto, authentication));
     }
 
     @GetMapping("/ponctuelles")
@@ -46,6 +47,6 @@ public class FermetureController {
             @PathVariable Integer idSite,
             @Valid @RequestBody FermeturePonctuelleDTO dto,
             Authentication authentication) {
-        return ResponseEntity.ok(fermeturePonctuelleService.create(idSite, dto, authentication));
+        return ResponseEntity.status(HttpStatus.CREATED).body(fermeturePonctuelleService.create(idSite, dto, authentication));
     }
 }
