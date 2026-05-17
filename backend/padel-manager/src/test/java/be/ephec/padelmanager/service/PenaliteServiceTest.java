@@ -9,6 +9,7 @@ import be.ephec.padelmanager.model.Penalite;
 import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.impl.PenaliteService;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,7 +74,7 @@ class PenaliteServiceTest {
 
     @Test
     void annulerPenalite_active_setsDateFinToNow() {
-        Penalite pen = buildPenalite(LocalDateTime.now().plusDays(7));
+        Penalite pen = buildPenalite(LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS));
         when(penaliteRepo.findById(PENALITE_ID)).thenReturn(Optional.of(pen));
 
         PenaliteDTO dto = service.annulerPenalite(PENALITE_ID, authGlobal());
@@ -108,7 +109,7 @@ class PenaliteServiceTest {
 
     @Test
     void annulerPenalite_siteScope_throwsForbiddenException() {
-        Penalite pen = buildPenalite(LocalDateTime.now().plusDays(7));
+        Penalite pen = buildPenalite(LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS));
         when(penaliteRepo.findById(PENALITE_ID)).thenReturn(Optional.of(pen));
         doThrow(new ForbiddenException("Accès refusé"))
                 .when(siteAccessChecker).check(any(), any());
@@ -131,7 +132,7 @@ class PenaliteServiceTest {
         ArgumentCaptor<Penalite> captor = ArgumentCaptor.forClass(Penalite.class);
         verify(penaliteRepo, times(1)).save(captor.capture());
         assertThat(captor.getValue().getDateFin())
-                .isCloseTo(LocalDateTime.now().plusDays(7), within(2, ChronoUnit.SECONDS));
+                .isCloseTo(LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS), within(2, ChronoUnit.SECONDS));
     }
 
     @Test

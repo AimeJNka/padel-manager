@@ -27,6 +27,7 @@ import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
 import be.ephec.padelmanager.service.IPenaliteService;
+import be.ephec.padelmanager.config.MatchPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -43,8 +44,6 @@ import java.util.List;
 @Transactional
 @RequiredArgsConstructor
 public class MatchPadelService implements IMatchPadelService {
-
-    private static final BigDecimal PRIX_PLACE_EUR = BigDecimal.valueOf(15);
 
     private final MatchPadelRepo matchPadelRepo;
     private final ParticipationRepo participationRepo;
@@ -96,7 +95,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, joueur.getMatricule())) {
             throw new ConflictException("Le joueur est déjà inscrit au match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= MatchPolicy.NB_JOUEURS_MATCH) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
@@ -148,7 +147,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, membre.getMatricule())) {
             throw new ConflictException("Vous êtes déjà inscrit à ce match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= MatchPolicy.NB_JOUEURS_MATCH) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
@@ -177,7 +176,7 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? 24 : 48;
+        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? MatchPolicy.DELAI_ANNULATION_PUBLIC_H : MatchPolicy.DELAI_ANNULATION_PRIVE_H;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
@@ -213,17 +212,17 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public int basculerMatchesIncomplets() {
         List<MatchPadel> candidats = matchPadelRepo.findByTypeMatchAndStatutAndDispoDebutBefore(
-                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(MatchPolicy.DELAI_PAIEMENT_H));
         int count = 0;
         for (MatchPadel match : candidats) {
             long confirmes = participationRepo.countByMatchIdAndStatut(
                     match.getIdMatch(), ParticipationStatus.CONFIRME);
-            if (confirmes < 4) {
+            if (confirmes < MatchPolicy.NB_JOUEURS_MATCH) {
                 match.setTypeMatch(MatchType.PUBLIC);
                 // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
                 matchPadelRepo.save(match);
                 penaliteService.appliquerPenalite(
-                        match.getOrganisateur(), 7,
+                        match.getOrganisateur(), MatchPolicy.DUREE_PENALITE_JOURS,
                         String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
                 count++;
             }
@@ -263,9 +262,9 @@ public class MatchPadelService implements IMatchPadelService {
         for (MatchPadel match : eligibles) {
             long confirmes = participationRepo.countByMatchIdAndStatut(
                     match.getIdMatch(), ParticipationStatus.CONFIRME);
-            int placesVides = Math.max(0, 4 - (int) confirmes);
+            int placesVides = Math.max(0, MatchPolicy.NB_JOUEURS_MATCH - (int) confirmes);
             if (placesVides > 0) {
-                BigDecimal soldeAjout = PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
+                BigDecimal soldeAjout = MatchPolicy.PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
                 Membre organisateur = match.getOrganisateur();
                 BigDecimal actuel = organisateur.getSoldeDu() != null
                         ? organisateur.getSoldeDu() : BigDecimal.ZERO;
@@ -322,7 +321,7 @@ public class MatchPadelService implements IMatchPadelService {
         match.setOrganisateur(organisateur);
         match.setTypeMatch(typeMatch);
         match.setStatut(MatchStatus.EN_ATTENTE);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDateCreation(LocalDateTime.now());
         MatchPadel saved = matchPadelRepo.save(match);
 

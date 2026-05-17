@@ -16,6 +16,7 @@ import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.impl.ParticipationService;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,7 +83,7 @@ class ParticipationServiceTest {
         MatchPadel match = new MatchPadel();
         match.setIdMatch(ID_MATCH);
         match.setDisponibilite(dispo);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
 
         Participation participation = new Participation();
         participation.setIdParticipation(7);
@@ -93,7 +94,7 @@ class ParticipationServiceTest {
         Paiement paiement = new Paiement();
         paiement.setIdPaiement(99);
         paiement.setParticipation(participation);
-        paiement.setMontant(new BigDecimal("15.00"));
+        paiement.setMontant(MatchPolicy.PRIX_PLACE_EUR);
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setStatut(paiementStatut);
 
@@ -152,7 +153,7 @@ class ParticipationServiceTest {
 
         assertThat(participation.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
         assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.ANNULE);
-        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(MatchPolicy.PRIX_PLACE_EUR);
         verify(membreRepo, times(1)).save(participation.getMembre());
 
         ArgumentCaptor<Penalite> penCaptor = ArgumentCaptor.forClass(Penalite.class);
@@ -162,7 +163,7 @@ class ParticipationServiceTest {
         assertThat(saved.getMembre().getMatricule()).isEqualTo(MATRICULE);
         // dateFin within 1 second of now+7d
         long deltaSeconds = Math.abs(ChronoUnit.SECONDS.between(
-                saved.getDateFin(), LocalDateTime.now().plusDays(7)));
+                saved.getDateFin(), LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS)));
         assertThat(deltaSeconds).isLessThanOrEqualTo(1);
     }
 
@@ -231,7 +232,7 @@ class ParticipationServiceTest {
     @Test
     void annulerParticipation_boundary_exactly24h() {
         // +2s buffer absorbs LocalDateTime.now() drift between test and service — still rounds to 24h
-        LocalDateTime start = LocalDateTime.now().plusHours(24).plusSeconds(2);
+        LocalDateTime start = LocalDateTime.now().plusHours(MatchPolicy.DELAI_PAIEMENT_H).plusSeconds(2);
         Participation participation = buildParticipation(start, PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, ParticipationStatus.EN_ATTENTE);
         Paiement paiement = paiementRepo.findByParticipation(participation).orElseThrow();
 
@@ -255,7 +256,7 @@ class ParticipationServiceTest {
 
         assertThat(participation.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
         assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.ANNULE);
-        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(MatchPolicy.PRIX_PLACE_EUR);
         verify(penaliteRepo, times(1)).save(any(Penalite.class));
         verify(membreRepo, times(1)).save(any(Membre.class));
     }
@@ -266,7 +267,7 @@ class ParticipationServiceTest {
     void annulerParticipation_boundary_exactly24h_isPAYE() {
         // Exactly at the 24h boundary, member already PAID.
         // Spec: hoursRestantes < delaiRequis => exactly 24h is NOT late => REMBOURSE, never absorbed as fee.
-        LocalDateTime start = LocalDateTime.now().plusHours(24).plusSeconds(2);
+        LocalDateTime start = LocalDateTime.now().plusHours(MatchPolicy.DELAI_PAIEMENT_H).plusSeconds(2);
         Participation participation = buildParticipation(start, PaiementStatus.PAYE, BigDecimal.ZERO, ParticipationStatus.EN_ATTENTE);
         Paiement paiement = paiementRepo.findByParticipation(participation).orElseThrow();
 

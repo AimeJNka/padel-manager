@@ -18,6 +18,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -88,7 +89,7 @@ class PaiementAdminIntegrationTest {
         match.setOrganisateur(membre);
         match.setTypeMatch(MatchType.PUBLIC);
         match.setStatut(MatchStatus.EN_ATTENTE);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDateCreation(LocalDateTime.now());
         matchPadelRepo.save(match);
 
@@ -101,7 +102,7 @@ class PaiementAdminIntegrationTest {
 
         Paiement paiement = new Paiement();
         paiement.setParticipation(participation);
-        paiement.setMontant(new BigDecimal("15.00"));
+        paiement.setMontant(MatchPolicy.PRIX_PLACE_EUR);
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setStatut(PaiementStatus.EN_ATTENTE);
         paiement.setDatePaiement(LocalDateTime.now());

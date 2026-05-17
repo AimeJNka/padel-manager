@@ -15,6 +15,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -180,7 +181,7 @@ class MatchSchedulerIntegrationTest {
         match.setOrganisateur(organizer);
         match.setTypeMatch(typeMatch);
         match.setStatut(statut);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDateCreation(LocalDateTime.now());
         return matchPadelRepo.save(match);
     }
