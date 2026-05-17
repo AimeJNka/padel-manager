@@ -118,4 +118,4 @@ Package de base : `be.ephec.padelmanager` (abrégé `...` dans le tableau).
 - Document source : `docs/cdc/CDC_GestionTerrainPadle.pdf`.
 - ADR-0001 (`docs/adr/0001-sessions-admin-sans-refresh-token.md`) : référence de style et structure Nygard adoptée dans ce projet.
 - Commit d'implémentation Sprint 2A : `c4ef09f`.
-- Commit d'implémentation Sprint 2D Phase B1 : `<commit-hash-2D-B1>` (à compléter post-commit).
+- Commit d'implémentation Sprint 2D Phase B1 : `XXXXXXX` (à compléter post-commit).
