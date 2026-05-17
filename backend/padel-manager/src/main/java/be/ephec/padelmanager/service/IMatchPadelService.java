@@ -9,4 +9,6 @@ public interface IMatchPadelService {
     void ajouterJoueur(Integer idMatch, String matriculeJoueur, Authentication auth);
     void sInscrireMatchPublic(Integer idMatch, Authentication auth);
     void annulerMatch(Integer idMatch, Authentication auth);
+
+    int basculerMatchesIncomplets();
 }

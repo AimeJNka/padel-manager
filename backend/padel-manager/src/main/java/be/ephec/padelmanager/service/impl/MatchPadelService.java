@@ -13,7 +13,10 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
 import be.ephec.padelmanager.model.MatchPadel;
+import be.ephec.padelmanager.model.MatchStatus;
+import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Participation;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
@@ -22,6 +25,7 @@ import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
+import be.ephec.padelmanager.service.IPenaliteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -43,6 +47,7 @@ public class MatchPadelService implements IMatchPadelService {
     private final MembreRepo membreRepo;
     private final PenaliteRepo penaliteRepo;
     private final IPaiementService paiementService;
+    private final IPenaliteService penaliteService;
 
     @Override
     public MatchPadelDTO creerMatchPrive(Integer dispoId, Authentication auth) {
@@ -185,6 +190,40 @@ public class MatchPadelService implements IMatchPadelService {
 
         match.setStatut("ANNULE");
         matchPadelRepo.save(match);
+    }
+
+    /**
+     * Job 1 — Bascule les matchs privés incomplets en PUBLIC (CF-M-004/CF-M-005).
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs PRIVE+EN_ATTENTE sont interrogés ;
+     * après bascule ils deviennent PUBLIC et ne sont plus retraités.
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est basculé ce tick-ci. Une isolation
+     * par-match (REQUIRES_NEW via bean helper) serait une amélioration
+     * mais sort du périmètre de Sprint 2B.
+     * </p>
+     */
+    @Override
+    public int basculerMatchesIncomplets() {
+        List<MatchPadel> candidats = matchPadelRepo.findByTypeMatchAndStatutAndDispoDebutBefore(
+                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+        int count = 0;
+        for (MatchPadel match : candidats) {
+            long confirmes = participationRepo.countByMatchIdAndStatut(
+                    match.getIdMatch(), ParticipationStatus.CONFIRME);
+            if (confirmes < 4) {
+                match.setTypeMatch(MatchType.PUBLIC);
+                // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+                matchPadelRepo.save(match);
+                penaliteService.appliquerPenalite(
+                        match.getOrganisateur(), 7,
+                        String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
+                count++;
+            }
+        }
+        return count;
     }
 
     private void verifierConditionsCreation(Membre membre, Disponibilite dispo) {

@@ -7,6 +7,7 @@ import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Penalite;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
 import be.ephec.padelmanager.repository.MembreRepo;
@@ -26,11 +27,13 @@ import org.springframework.security.core.Authentication;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -290,5 +293,61 @@ class ParticipationServiceTest {
         assertThat(participation.getMembre().getSoldeDu()).isEqualByComparingTo(BigDecimal.ZERO);
         verify(membreRepo, never()).save(any());
         verify(penaliteRepo, times(1)).save(any(Penalite.class));
+    }
+
+    // ── libererPlacesNonPayees ───────────────────────
+
+    @Test
+    void libererPlacesNonPayees_noEligibleParticipations_returnsZero() {
+        when(participationRepo.findByStatutAndMatchDispoDebutBefore(
+                eq(ParticipationStatus.EN_ATTENTE), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        int result = service.libererPlacesNonPayees();
+
+        assertThat(result).isZero();
+    }
+
+    @Test
+    void libererPlacesNonPayees_enAttente_setToAnnulee() {
+        Participation p = new Participation();
+        p.setStatut(ParticipationStatus.EN_ATTENTE);
+        when(participationRepo.findByStatutAndMatchDispoDebutBefore(
+                eq(ParticipationStatus.EN_ATTENTE), any(LocalDateTime.class)))
+                .thenReturn(List.of(p));
+
+        int result = service.libererPlacesNonPayees();
+
+        assertThat(result).isEqualTo(1);
+        assertThat(p.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+        verify(participationRepo, times(1)).saveAll(List.of(p));
+    }
+
+    @Test
+    void libererPlacesNonPayees_multipleParticipations_allSetToAnnulee() {
+        Participation p1 = new Participation(); p1.setStatut(ParticipationStatus.EN_ATTENTE);
+        Participation p2 = new Participation(); p2.setStatut(ParticipationStatus.EN_ATTENTE);
+        Participation p3 = new Participation(); p3.setStatut(ParticipationStatus.EN_ATTENTE);
+        when(participationRepo.findByStatutAndMatchDispoDebutBefore(
+                eq(ParticipationStatus.EN_ATTENTE), any(LocalDateTime.class)))
+                .thenReturn(List.of(p1, p2, p3));
+
+        int result = service.libererPlacesNonPayees();
+
+        assertThat(result).isEqualTo(3);
+        assertThat(p1.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+        assertThat(p2.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+        assertThat(p3.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+    }
+
+    @Test
+    void libererPlacesNonPayees_emptyBatch_saveAllNotCalled() {
+        when(participationRepo.findByStatutAndMatchDispoDebutBefore(
+                eq(ParticipationStatus.EN_ATTENTE), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        service.libererPlacesNonPayees();
+
+        verify(participationRepo, never()).saveAll(any());
     }
 }
