@@ -100,8 +100,8 @@ class MatchPadelServiceTest {
 
         MatchPadel match = new MatchPadel();
         match.setIdMatch(ID_MATCH);
-        match.setTypeMatch("PUBLIC");
-        match.setStatut("EN_ATTENTE");
+        match.setTypeMatch(MatchType.PUBLIC);
+        match.setStatut(MatchStatus.EN_ATTENTE);
         match.setOrganisateur(organisateur);
 
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
