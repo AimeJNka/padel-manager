@@ -35,11 +35,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class MatchPadelService implements IMatchPadelService {
+
+    private static final Logger log = LoggerFactory.getLogger(MatchPadelService.class);
+    private static final BigDecimal PRIX_PLACE_EUR = BigDecimal.valueOf(15);
 
     private final MatchPadelRepo matchPadelRepo;
     private final ParticipationRepo participationRepo;
@@ -223,6 +228,57 @@ public class MatchPadelService implements IMatchPadelService {
                 count++;
             }
         }
+        return count;
+    }
+
+    /**
+     * Job 3 — Calcule le solde dû par l'organisateur pour les places vides
+     * au démarrage du match (CF-M-007) et marque le match comme DEMARRE.
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs EN_ATTENTE dont le créneau a démarré
+     * sont interrogés ; après traitement ils passent à DEMARRE et ne sont
+     * plus retraités.
+     * <p>
+     * <b>Règle métier :</b> placesVides = 4 − count(participations CONFIRME).
+     * Le soldeDu de l'organisateur est incrémenté de (placesVides × 15€).
+     * La place de l'organisateur lui-même est comptée comme vide s'il n'a
+     * pas confirmé sa participation (pas d'exception, conforme CF-M-007).
+     * </p>
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est marqué DEMARRE ce tick-ci. Une
+     * isolation par-match (REQUIRES_NEW via bean helper) serait une
+     * amélioration mais sort du périmètre de Sprint 2C.
+     * </p>
+     *
+     * @return le nombre de matchs effectivement traités (transitionnés vers DEMARRE)
+     */
+    @Override
+    public int traiterSoldeMatchesDemarres() {
+        List<MatchPadel> eligibles = matchPadelRepo.findStartedMatchesByStatut(
+                MatchStatus.EN_ATTENTE, LocalDateTime.now());
+        log.info("[Job 3] {} match(es) éligible(s) pour calcul de solde", eligibles.size());
+        int count = 0;
+        for (MatchPadel match : eligibles) {
+            long confirmes = participationRepo.countByMatchIdAndStatut(
+                    match.getIdMatch(), ParticipationStatus.CONFIRME);
+            int placesVides = Math.max(0, 4 - (int) confirmes);
+            if (placesVides > 0) {
+                BigDecimal soldeAjout = PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
+                Membre organisateur = match.getOrganisateur();
+                BigDecimal actuel = organisateur.getSoldeDu() != null
+                        ? organisateur.getSoldeDu() : BigDecimal.ZERO;
+                organisateur.setSoldeDu(actuel.add(soldeAjout));
+                // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+                membreRepo.save(organisateur);
+            }
+            match.setStatut(MatchStatus.DEMARRE);
+            // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+            matchPadelRepo.save(match);
+            count++;
+        }
+        log.info("[Job 3] {} match(es) traité(s), marqués DEMARRE", count);
         return count;
     }
 

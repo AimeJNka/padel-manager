@@ -32,6 +32,12 @@ public class MatchScheduler {
         } catch (Exception e) {
             log.error("[Scheduler] Job 1 (basculer matchs incomplets) a échoué", e);
         }
+        try {
+            int demarres = matchPadelService.traiterSoldeMatchesDemarres();
+            log.info("[Scheduler] Job 3 — {} match(es) marqué(s) DEMARRE", demarres);
+        } catch (Exception e) {
+            log.error("[Scheduler] Job 3 (calcul solde organisateur) a échoué", e);
+        }
         log.info("[Scheduler] Traitement horaire terminé");
     }
 }

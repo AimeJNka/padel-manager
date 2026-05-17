@@ -21,13 +21,14 @@ class MatchSchedulerTest {
     @InjectMocks MatchScheduler scheduler;
 
     @Test
-    void traiterMatchesHoraire_executesJob2BeforeJob1() {
+    void traiterMatchesHoraire_executesJobsInCorrectOrder() {
         var order = inOrder(participationService, matchPadelService);
 
         scheduler.traiterMatchesHoraire();
 
         order.verify(participationService).libererPlacesNonPayees();
         order.verify(matchPadelService).basculerMatchesIncomplets();
+        order.verify(matchPadelService).traiterSoldeMatchesDemarres();
     }
 
     @Test
@@ -44,5 +45,14 @@ class MatchSchedulerTest {
         doThrow(new RuntimeException("TX failure")).when(matchPadelService).basculerMatchesIncomplets();
 
         assertThatNoException().isThrownBy(() -> scheduler.traiterMatchesHoraire());
+    }
+
+    @Test
+    void traiterMatchesHoraire_whenJob1Throws_job3StillRuns() {
+        doThrow(new RuntimeException("TX failure")).when(matchPadelService).basculerMatchesIncomplets();
+
+        scheduler.traiterMatchesHoraire();
+
+        verify(matchPadelService).traiterSoldeMatchesDemarres();
     }
 }
