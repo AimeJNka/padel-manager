@@ -5,6 +5,7 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
 import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Penalite;
@@ -74,7 +75,7 @@ public class ParticipationService implements IParticipationService {
                 .orElseThrow(() -> new ForbiddenException(
                         "Accès refusé : vous n'êtes pas inscrit à ce match."));
 
-        if ("ANNULEE".equals(participation.getStatut())) {
+        if (ParticipationStatus.ANNULEE.equals(participation.getStatut())) {
             throw new BadRequestException("Participation déjà annulée");
         }
 
@@ -91,7 +92,7 @@ public class ParticipationService implements IParticipationService {
         long hoursUntilMatch = ChronoUnit.HOURS.between(now, debut);
         boolean late = hoursUntilMatch < 24L;
 
-        participation.setStatut("ANNULEE");
+        participation.setStatut(ParticipationStatus.ANNULEE);
 
         // Annulation tardive : si le paiement a été effectué, il est
         // absorbé comme frais d'annulation et passe à ANNULE sans
@@ -99,8 +100,8 @@ public class ParticipationService implements IParticipationService {
         // à ANNULE et 15€ sont ajoutés au soldeDu.
         if (late) {
             Membre membre = participation.getMembre();
-            boolean wasPaid = "PAYE".equals(paiement.getStatut());
-            paiement.setStatut("ANNULE");
+            boolean wasPaid = PaiementStatus.PAYE.equals(paiement.getStatut());
+            paiement.setStatut(PaiementStatus.ANNULE);
             if (!wasPaid) {
                 BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
                 membre.setSoldeDu(current.add(new BigDecimal("15.00")));
@@ -113,10 +114,10 @@ public class ParticipationService implements IParticipationService {
             pen.setMotif("ANNULATION_TARDIVE");
             penaliteRepo.save(pen);
         } else {
-            if ("PAYE".equals(paiement.getStatut())) {
-                paiement.setStatut("REMBOURSE");
+            if (PaiementStatus.PAYE.equals(paiement.getStatut())) {
+                paiement.setStatut(PaiementStatus.REMBOURSE);
             } else {
-                paiement.setStatut("ANNULE");
+                paiement.setStatut(PaiementStatus.ANNULE);
             }
         }
 

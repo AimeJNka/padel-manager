@@ -25,7 +25,7 @@ Au moment de l'initialisation de Sprint 2A, le backend présentait les lacunes s
 
 **3.2** Un nouveau statut de cycle de vie `DEMARRE` est introduit sur `match_padel` comme marqueur d'idempotence pour Job 3.
 
-**3.3** Les statuts et types de match sont représentés par des classes de constantes statiques Java (`MatchStatus`, `MatchType`, `ParticipationStatus`) plutôt que par des enums JPA `@Enumerated`.
+**3.3** Les statuts et types de match sont représentés par des classes de constantes statiques Java (`MatchStatus`, `MatchType`, `ParticipationStatus`, `PaiementStatus`) plutôt que par des enums JPA `@Enumerated`.
 
 ## Justification
 
@@ -60,6 +60,8 @@ L'approche idéale serait d'utiliser des enums Java avec `@Enumerated(EnumType.S
 - La migration progressive des literals existants vers les constantes peut s'effectuer en Sprint 2B sans risque de régression à la compilation.
 
 **Cette décision représente de la dette technique assumée.** Les constantes statiques ne valident pas à la compilation et ne modifient pas le comportement JPA. Les String literals dans les services existants persistent jusqu'à leur remplacement explicite en Sprint 2B.
+
+**Sprint 2D Phase B1** a étendu ce pattern à `PaiementStatus` (statut de la table `paiement`), migré les 36 occurrences de literals dans `src/main/java` vers les constantes, et supprimé la dette technique résiduelle dans `MatchPadelService`, `PaiementService` et `ParticipationService`. La migration des fichiers de test (69 occurrences) fait l'objet de Sprint 2D Phase B2.
 
 ## Conséquences
 
@@ -99,6 +101,16 @@ Package de base : `be.ephec.padelmanager` (abrégé `...` dans le tableau).
 - Migrer progressivement les String literals des services existants vers `MatchStatus`, `MatchType`, `ParticipationStatus`.
 - Valider l'application de V10 en environnement local après `docker compose down -v && docker compose up -d`.
 
+### Sprint 2D Phase B1 — Fichiers créés ou modifiés
+
+| Fichier | Action | Rôle |
+|---|---|---|
+| `src/main/java/.../model/PaiementStatus.java` | Créé | Constantes statiques statut `paiement` |
+| `src/main/java/.../service/impl/MatchPadelService.java` | Modifié | 16 literals → constantes (MatchStatus, MatchType, ParticipationStatus) |
+| `src/main/java/.../service/impl/PaiementService.java` | Modifié | 13 literals → constantes (PaiementStatus, ParticipationStatus) |
+| `src/main/java/.../service/impl/ParticipationService.java` | Modifié | 7 literals → constantes (PaiementStatus, ParticipationStatus) |
+| `docs/adr/0002-architecture-scheduler-traitements-automatiques.md` | Modifié | Ce document — étendu pour Sprint 2D |
+
 ## Références
 
 - CDC sections CF-M-004 à CF-M-008 (p. 24-25) : règles métier détaillées des traitements automatiques (bascule matchs privés, libération places, solde organisateur).
@@ -106,3 +118,4 @@ Package de base : `be.ephec.padelmanager` (abrégé `...` dans le tableau).
 - Document source : `docs/cdc/CDC_GestionTerrainPadle.pdf`.
 - ADR-0001 (`docs/adr/0001-sessions-admin-sans-refresh-token.md`) : référence de style et structure Nygard adoptée dans ce projet.
 - Commit d'implémentation Sprint 2A : `c4ef09f`.
+- Commit d'implémentation Sprint 2D Phase B1 : `<commit-hash-2D-B1>` (à compléter post-commit).

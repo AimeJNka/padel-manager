@@ -7,7 +7,9 @@ import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Paiement;
+import be.ephec.padelmanager.model.PaiementStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
@@ -59,7 +61,7 @@ public class PaiementService implements IPaiementService {
         p.setParticipation(participation);
         p.setMontant(montant);
         p.setSoldeInclus(BigDecimal.ZERO);
-        p.setStatut("EN_ATTENTE");
+        p.setStatut(PaiementStatus.EN_ATTENTE);
         paiementRepo.save(p);
     }
 
@@ -67,8 +69,8 @@ public class PaiementService implements IPaiementService {
     public void annulerPourParticipation(Participation participation) {
         // SECURITY #12 — pessimistic lock: prevents concurrent match-cancel / late-cancel race
         paiementRepo.findByParticipationForUpdate(participation).ifPresent(p -> {
-            if (!"REMBOURSE".equals(p.getStatut()) && !"ANNULE".equals(p.getStatut())) {
-                p.setStatut("PAYE".equals(p.getStatut()) ? "REMBOURSE" : "ANNULE");
+            if (!PaiementStatus.REMBOURSE.equals(p.getStatut()) && !PaiementStatus.ANNULE.equals(p.getStatut())) {
+                p.setStatut(PaiementStatus.PAYE.equals(p.getStatut()) ? PaiementStatus.REMBOURSE : PaiementStatus.ANNULE);
                 paiementRepo.save(p);
             }
         });
@@ -93,14 +95,14 @@ public class PaiementService implements IPaiementService {
             throw new ForbiddenException("Accès refusé");
         }
 
-        if (!"EN_ATTENTE".equals(paiement.getStatut())) {
+        if (!PaiementStatus.EN_ATTENTE.equals(paiement.getStatut())) {
             throw new ConflictException("Paiement déjà traité");
         }
 
         Participation participation = paiement.getParticipation();
         Membre membre = participation.getMembre();
 
-        paiement.setStatut("PAYE");
+        paiement.setStatut(PaiementStatus.PAYE);
         paiement.setDatePaiement(LocalDateTime.now());
 
         BigDecimal soldeDu = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
@@ -110,7 +112,7 @@ public class PaiementService implements IPaiementService {
             membreRepo.save(membre); // lock order: paiement acquired first (#5)
         }
 
-        participation.setStatut("CONFIRME");
+        participation.setStatut(ParticipationStatus.CONFIRME);
         participationRepo.save(participation); // @OneToOne sans cascade → save explicite
 
         paiementRepo.save(paiement);
@@ -125,16 +127,16 @@ public class PaiementService implements IPaiementService {
         // SECURITY #3 — site-scope check
         checkPaiementSiteAccess(paiement, auth);
 
-        if (!"PAYE".equals(paiement.getStatut())) {
+        if (!PaiementStatus.PAYE.equals(paiement.getStatut())) {
             throw new ConflictException("Paiement non payé, remboursement impossible");
         }
 
-        paiement.setStatut("REMBOURSE");
+        paiement.setStatut(PaiementStatus.REMBOURSE);
         paiementRepo.save(paiement);
 
         Participation participation = paiement.getParticipation();
-        if ("CONFIRME".equals(participation.getStatut())) {
-            participation.setStatut("EN_ATTENTE");
+        if (ParticipationStatus.CONFIRME.equals(participation.getStatut())) {
+            participation.setStatut(ParticipationStatus.EN_ATTENTE);
             participationRepo.save(participation);
         }
 

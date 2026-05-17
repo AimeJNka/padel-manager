@@ -59,7 +59,7 @@ public class MatchPadelService implements IMatchPadelService {
         Membre organisateur = resolveMembre(auth);
         Disponibilite dispo = resolveDisponibilite(dispoId);
         verifierConditionsCreation(organisateur, dispo);
-        return creerMatch(organisateur, dispo, "PRIVE");
+        return creerMatch(organisateur, dispo, MatchType.PRIVE);
     }
 
     @Override
@@ -67,20 +67,20 @@ public class MatchPadelService implements IMatchPadelService {
         Membre organisateur = resolveMembre(auth);
         Disponibilite dispo = resolveDisponibilite(dispoId);
         verifierConditionsCreation(organisateur, dispo);
-        return creerMatch(organisateur, dispo, "PUBLIC");
+        return creerMatch(organisateur, dispo, MatchType.PUBLIC);
     }
 
     @Override
     public void ajouterJoueur(Integer idMatch, String matriculeJoueur, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est annulé");
         }
         if (match.getOrganisateur() == null
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut ajouter un joueur");
         }
-        if ("PUBLIC".equals(match.getTypeMatch())) {
+        if (MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException(
                     "CF-M-010 : l'organisateur ne peut pas ajouter directement un joueur à un match public");
         }
@@ -96,14 +96,14 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, joueur.getMatricule())) {
             throw new ConflictException("Le joueur est déjà inscrit au match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, "ANNULEE") >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
         Participation participation = new Participation();
         participation.setMatchPadel(match);
         participation.setMembre(joueur);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
@@ -112,10 +112,10 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public void sInscrireMatchPublic(Integer idMatch, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if (!"PUBLIC".equals(match.getTypeMatch())) {
+        if (!MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException("Le match n'est pas public");
         }
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est annulé");
         }
         Membre membre = resolveMembre(auth);
@@ -148,14 +148,14 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, membre.getMatricule())) {
             throw new ConflictException("Vous êtes déjà inscrit à ce match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, "ANNULEE") >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
         Participation participation = new Participation();
         participation.setMatchPadel(match);
         participation.setMembre(membre);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
@@ -168,7 +168,7 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut annuler le match");
         }
-        if ("ANNULE".equals(match.getStatut())) {
+        if (MatchStatus.ANNULE.equals(match.getStatut())) {
             throw new BadRequestException("Le match est déjà annulé");
         }
 
@@ -177,7 +177,7 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = "PUBLIC".equals(match.getTypeMatch()) ? 24 : 48;
+        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? 24 : 48;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
@@ -188,12 +188,12 @@ public class MatchPadelService implements IMatchPadelService {
 
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
         for (Participation p : participations) {
-            p.setStatut("ANNULEE");
+            p.setStatut(ParticipationStatus.ANNULEE);
             paiementService.annulerPourParticipation(p);
         }
         participationRepo.saveAll(participations);
 
-        match.setStatut("ANNULE");
+        match.setStatut(MatchStatus.ANNULE);
         matchPadelRepo.save(match);
     }
 
@@ -321,7 +321,7 @@ public class MatchPadelService implements IMatchPadelService {
         match.setDisponibilite(dispo);
         match.setOrganisateur(organisateur);
         match.setTypeMatch(typeMatch);
-        match.setStatut("EN_ATTENTE");
+        match.setStatut(MatchStatus.EN_ATTENTE);
         match.setMontantTotal(new BigDecimal("60.00"));
         match.setDateCreation(LocalDateTime.now());
         MatchPadel saved = matchPadelRepo.save(match);
@@ -329,7 +329,7 @@ public class MatchPadelService implements IMatchPadelService {
         Participation participation = new Participation();
         participation.setMatchPadel(saved);
         participation.setMembre(organisateur);
-        participation.setStatut("EN_ATTENTE");
+        participation.setStatut(ParticipationStatus.EN_ATTENTE);
         participation.setDateInscription(LocalDateTime.now());
         participationRepo.save(participation);
         paiementService.creerPourParticipation(participation);
