@@ -18,6 +18,7 @@ import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -221,5 +223,111 @@ class PaiementServiceTest {
         assertThat(paiement.getParticipation().getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
         verify(paiementRepo, times(1)).save(paiement);
         verify(participationRepo, times(1)).save(paiement.getParticipation());
+    }
+
+    // ── creerPourParticipation ───────────────────────
+
+    // Note: PaiementService.creerPourParticipation currently divides by hardcoded 4
+    // instead of MatchPolicy.NB_JOUEURS_MATCH. Not fixed here — see Sprint H-B2 finding gaps.
+    @Test
+    void creerPourParticipation_validParticipation_savesPaiementWithCorrectAmount() {
+        Participation participation = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER)
+                .getParticipation();
+
+        service.creerPourParticipation(participation);
+
+        ArgumentCaptor<Paiement> captor = ArgumentCaptor.forClass(Paiement.class);
+        verify(paiementRepo, times(1)).save(captor.capture());
+        Paiement saved = captor.getValue();
+
+        assertThat(saved.getMontant()).isEqualByComparingTo(MatchPolicy.PRIX_PLACE_EUR);
+        assertThat(saved.getStatut()).isEqualTo(PaiementStatus.EN_ATTENTE);
+        assertThat(saved.getSoldeInclus()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(saved.getParticipation()).isSameAs(participation);
+    }
+
+    // ── annulerPourParticipation ─────────────────────
+
+    @Test
+    void annulerPourParticipation_enAttente_setsStatutAnnule() {
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER);
+        Participation participation = paiement.getParticipation();
+        when(paiementRepo.findByParticipationForUpdate(participation)).thenReturn(Optional.of(paiement));
+
+        service.annulerPourParticipation(participation);
+
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.ANNULE);
+        verify(paiementRepo, times(1)).save(paiement);
+    }
+
+    @Test
+    void annulerPourParticipation_paye_setsStatutRembourse() {
+        Paiement paiement = buildPaiement(PaiementStatus.PAYE, BigDecimal.ZERO, OWNER);
+        Participation participation = paiement.getParticipation();
+        when(paiementRepo.findByParticipationForUpdate(participation)).thenReturn(Optional.of(paiement));
+
+        service.annulerPourParticipation(participation);
+
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.REMBOURSE);
+        verify(paiementRepo, times(1)).save(paiement);
+    }
+
+    @Test
+    void annulerPourParticipation_alreadyAnnule_noOpNoSave() {
+        Paiement paiement = buildPaiement(PaiementStatus.ANNULE, BigDecimal.ZERO, OWNER);
+        Participation participation = paiement.getParticipation();
+        when(paiementRepo.findByParticipationForUpdate(participation)).thenReturn(Optional.of(paiement));
+
+        service.annulerPourParticipation(participation);
+
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.ANNULE);
+        verify(paiementRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerPourParticipation_alreadyRembourse_noOpNoSave() {
+        Paiement paiement = buildPaiement(PaiementStatus.REMBOURSE, BigDecimal.ZERO, OWNER);
+        Participation participation = paiement.getParticipation();
+        when(paiementRepo.findByParticipationForUpdate(participation)).thenReturn(Optional.of(paiement));
+
+        service.annulerPourParticipation(participation);
+
+        assertThat(paiement.getStatut()).isEqualTo(PaiementStatus.REMBOURSE);
+        verify(paiementRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerPourParticipation_noPaiementFound_silentNoOp() {
+        Participation participation = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER)
+                .getParticipation();
+        when(paiementRepo.findByParticipationForUpdate(participation)).thenReturn(Optional.empty());
+
+        service.annulerPourParticipation(participation);
+
+        verify(paiementRepo, never()).save(any());
+    }
+
+    // ── listerPaiementsMembre ────────────────────────
+
+    @Test
+    void listerPaiementsMembre_withExistingPaiements_returnsMappedDTOs() {
+        Paiement paiement = buildPaiement(PaiementStatus.EN_ATTENTE, BigDecimal.ZERO, OWNER);
+        when(paiementRepo.findByParticipationMembreMatriculeOrderByDatePaiementDesc(OWNER))
+                .thenReturn(List.of(paiement));
+
+        List<PaiementDTO> result = service.listerPaiementsMembre(authAs(OWNER));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).statut()).isEqualTo(PaiementStatus.EN_ATTENTE);
+    }
+
+    @Test
+    void listerPaiementsMembre_noPaiements_returnsEmptyList() {
+        when(paiementRepo.findByParticipationMembreMatriculeOrderByDatePaiementDesc(OWNER))
+                .thenReturn(List.of());
+
+        List<PaiementDTO> result = service.listerPaiementsMembre(authAs(OWNER));
+
+        assertThat(result).isNotNull().isEmpty();
     }
 }

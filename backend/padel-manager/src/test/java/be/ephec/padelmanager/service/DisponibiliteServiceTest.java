@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 
+import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 
 import java.time.LocalDate;
@@ -20,6 +21,12 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -172,6 +179,67 @@ class DisponibiliteServiceTest {
         assertThat(result).isEqualTo(364);
         verify(disponibiliteRepo)
                 .deleteLibreByTerrainSiteAndYearRange(eq(SITE_ID), any(), any());
+    }
 
+    // ════ access denied ════
+
+    @Test
+    void genererCreneaux_accessDenied_throwsForbidden() {
+        doThrow(new ForbiddenException("Accès refusé")).when(siteAccessChecker).check(authentication, SITE_ID);
+        assertThatThrownBy(() -> service.genererCreneaux(SITE_ID, ANNEE, authentication))
+                .isInstanceOf(ForbiddenException.class);
+        verify(siteRepo, never()).existsById(anyInt());
+    }
+
+    @Test
+    void regenererCreneaux_accessDenied_throwsForbidden() {
+        doThrow(new ForbiddenException("Accès refusé")).when(siteAccessChecker).check(authentication, SITE_ID);
+        assertThatThrownBy(() -> service.regenererCreneaux(SITE_ID, ANNEE, authentication))
+                .isInstanceOf(ForbiddenException.class);
+        verify(disponibiliteRepo, never()).findByTerrainSiteIdSiteAndDateHeureDebutBetween(any(), any(), any());
+    }
+
+    // ════ regenererCreneaux — no reserved slots ════
+
+    @Test
+    void regenererCreneaux_noReservedSlots_genWithEmptyExcludedKeys() {
+        when(disponibiliteRepo.findByTerrainSiteIdSiteAndDateHeureDebutBetween(eq(SITE_ID), any(), any()))
+                .thenReturn(Collections.emptyList());
+
+        int result = service.regenererCreneaux(SITE_ID, ANNEE, authentication);
+
+        assertThat(result).isEqualTo(365);
+        verify(disponibiliteRepo).deleteLibreByTerrainSiteAndYearRange(eq(SITE_ID), any(), any());
+    }
+
+    // ════ listerDisponibilites ════
+
+    @Test
+    void listerDisponibilites_allFiltersNull_returnsEmptyPage() {
+        when(disponibiliteRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        var result = service.listerDisponibilites(null, null, null, null, PageRequest.of(0, 10));
+
+        verify(disponibiliteRepo).findAll(any(Specification.class), any(Pageable.class));
+        assertThat(result.getContent()).isEmpty();
+    }
+
+    @Test
+    void listerDisponibilites_withFilters_returnsOneDtoPage() {
+        Disponibilite dispo = new Disponibilite();
+        dispo.setIdDispo(1);
+        dispo.setTerrain(terrain);
+        dispo.setDateHeureDebut(LocalDateTime.of(2026, 1, 1, 9, 0));
+        dispo.setDateHeureFin(LocalDateTime.of(2026, 1, 1, 10, 30));
+        dispo.setStatut(DisponibiliteStatus.LIBRE);
+        when(disponibiliteRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(dispo)));
+
+        var result = service.listerDisponibilites(SITE_ID, 1, LocalDate.of(2026, 1, 1), "LIBRE", PageRequest.of(0, 10));
+
+        verify(disponibiliteRepo).findAll(any(Specification.class), any(Pageable.class));
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getTerrain().getIdTerrain()).isEqualTo(1);
     }
 }

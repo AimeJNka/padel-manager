@@ -1,7 +1,6 @@
 package be.ephec.padelmanager.scheduler;
 
 import be.ephec.padelmanager.model.Disponibilite;
-import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -15,7 +14,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
-import be.ephec.padelmanager.config.MatchPolicy;
+import be.ephec.padelmanager.integration.IntegrationTestFixtures;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,10 +65,10 @@ class MatchSchedulerIntegrationTest {
         // PRIVE match starting in 12h (inside 24h Job-1 window, outside Job-3 past-start window)
         // 2 CONFIRME participants — below the required 4
         Membre organizer = membreRepo.findById("G0001").orElseThrow();
-        Disponibilite dispo = createDisponibilite(1, LocalDateTime.now().plusHours(12));
-        MatchPadel match = createMatch(dispo, organizer, MatchType.PRIVE, MatchStatus.EN_ATTENTE);
-        createParticipation(match, "G0001", ParticipationStatus.CONFIRME);
-        createParticipation(match, "S0001", ParticipationStatus.CONFIRME);
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(terrainRepo, disponibiliteRepo, 1, LocalDateTime.now().plusHours(12));
+        MatchPadel match = IntegrationTestFixtures.createMatch(matchPadelRepo, dispo, organizer, MatchType.PRIVE, MatchStatus.EN_ATTENTE);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "G0001", ParticipationStatus.CONFIRME);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "S0001", ParticipationStatus.CONFIRME);
 
         scheduler.traiterMatchesHoraire();
 
@@ -91,11 +90,11 @@ class MatchSchedulerIntegrationTest {
         // PUBLIC match starting in 2h — within Job-2's 24h threshold
         // 1 CONFIRME participant must be untouched; 2 EN_ATTENTE must become ANNULEE
         Membre organizer = membreRepo.findById("G0001").orElseThrow();
-        Disponibilite dispo = createDisponibilite(1, LocalDateTime.now().plusHours(2));
-        MatchPadel match = createMatch(dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
-        Participation p1 = createParticipation(match, "G0001", ParticipationStatus.CONFIRME);
-        Participation p2 = createParticipation(match, "S0001", ParticipationStatus.EN_ATTENTE);
-        Participation p3 = createParticipation(match, "L0001", ParticipationStatus.EN_ATTENTE);
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(terrainRepo, disponibiliteRepo, 1, LocalDateTime.now().plusHours(2));
+        MatchPadel match = IntegrationTestFixtures.createMatch(matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
+        Participation p1 = IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "G0001", ParticipationStatus.CONFIRME);
+        Participation p2 = IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "S0001", ParticipationStatus.EN_ATTENTE);
+        Participation p3 = IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "L0001", ParticipationStatus.EN_ATTENTE);
 
         scheduler.traiterMatchesHoraire();
 
@@ -116,10 +115,10 @@ class MatchSchedulerIntegrationTest {
         organizer.setSoldeDu(new BigDecimal("10.00"));
         membreRepo.save(organizer);
 
-        Disponibilite dispo = createDisponibilite(1, LocalDateTime.now().minusMinutes(30));
-        MatchPadel match = createMatch(dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
-        createParticipation(match, "G0001", ParticipationStatus.CONFIRME);
-        createParticipation(match, "S0001", ParticipationStatus.CONFIRME);
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(terrainRepo, disponibiliteRepo, 1, LocalDateTime.now().minusMinutes(30));
+        MatchPadel match = IntegrationTestFixtures.createMatch(matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "G0001", ParticipationStatus.CONFIRME);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "S0001", ParticipationStatus.CONFIRME);
 
         scheduler.traiterMatchesHoraire();
 
@@ -139,11 +138,11 @@ class MatchSchedulerIntegrationTest {
         organizer.setSoldeDu(BigDecimal.ZERO);
         membreRepo.save(organizer);
 
-        Disponibilite dispo = createDisponibilite(2, LocalDateTime.now().plusMinutes(30));
-        MatchPadel match = createMatch(dispo, organizer, MatchType.PRIVE, MatchStatus.EN_ATTENTE);
-        createParticipation(match, "G0001", ParticipationStatus.CONFIRME);
-        createParticipation(match, "S0001", ParticipationStatus.CONFIRME);
-        Participation waitingP = createParticipation(match, "L0001", ParticipationStatus.EN_ATTENTE);
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(terrainRepo, disponibiliteRepo, 2, LocalDateTime.now().plusMinutes(30));
+        MatchPadel match = IntegrationTestFixtures.createMatch(matchPadelRepo, dispo, organizer, MatchType.PRIVE, MatchStatus.EN_ATTENTE);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "G0001", ParticipationStatus.CONFIRME);
+        IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "S0001", ParticipationStatus.CONFIRME);
+        Participation waitingP = IntegrationTestFixtures.createParticipation(membreRepo, participationRepo, match, "L0001", ParticipationStatus.EN_ATTENTE);
 
         scheduler.traiterMatchesHoraire();
 
@@ -161,38 +160,5 @@ class MatchSchedulerIntegrationTest {
         assertThat(result.getStatut()).isEqualTo(MatchStatus.EN_ATTENTE);
         Membre updatedOrganizer = membreRepo.findById("G0001").orElseThrow();
         assertThat(updatedOrganizer.getSoldeDu().compareTo(BigDecimal.ZERO)).isZero();
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    private Disponibilite createDisponibilite(int terrainId, LocalDateTime debut) {
-        Disponibilite dispo = new Disponibilite();
-        dispo.setTerrain(terrainRepo.findById(terrainId).orElseThrow());
-        dispo.setDateHeureDebut(debut);
-        dispo.setDateHeureFin(debut.plusMinutes(90));
-        dispo.setStatut(DisponibiliteStatus.RESERVE);
-        return disponibiliteRepo.save(dispo);
-    }
-
-    private MatchPadel createMatch(Disponibilite dispo, Membre organizer,
-                                   String typeMatch, String statut) {
-        MatchPadel match = new MatchPadel();
-        match.setDisponibilite(dispo);
-        match.setOrganisateur(organizer);
-        match.setTypeMatch(typeMatch);
-        match.setStatut(statut);
-        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
-        match.setDateCreation(LocalDateTime.now());
-        return matchPadelRepo.save(match);
-    }
-
-    private Participation createParticipation(MatchPadel match, String matricule, String statut) {
-        Membre membre = membreRepo.findById(matricule).orElseThrow();
-        Participation p = new Participation();
-        p.setMatchPadel(match);
-        p.setMembre(membre);
-        p.setStatut(statut);
-        p.setDateInscription(LocalDateTime.now());
-        return participationRepo.save(p);
     }
 }

@@ -1,0 +1,201 @@
+# CI workflow for padel-manager backend.
+# Produces an enriched job summary (test counts + coverage bands) on every run.
+# Jury reference build: ade2c1f — 76 tests, 28% instruction coverage (baseline).
+#
+# Notes:
+#   1. The postgres service is required for PadelManagerApplicationTests, which uses plain
+#      @SpringBootTest (no Testcontainers) and needs a real datasource at context-load time.
+#      The three integration test classes bring their own Testcontainers containers and do
+#      not rely on this service.
+#
+#   2. JWT_SECRET is a CI-only fake value — NOT a production secret.
+#      Minimum 32 characters to satisfy JJWT HS256 key length requirement.
+#
+#   3. The JaCoCo artifact is uploaded for coverage visibility.
+#      No gate is enforced — this is a baseline reference only.
+
+name: Backend CI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Build & Test (Java 21)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: padel_manager
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d padel_manager"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_USERNAME: test
+      DB_PASSWORD: test
+      JWT_SECRET: ci-only-fake-secret-not-used-in-production-32ch
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Run tests with JaCoCo
+        working-directory: backend/padel-manager
+        run: ./mvnw test
+
+      - name: Write test summary
+        if: always()
+        working-directory: backend/padel-manager
+        run: |
+          if ! ls target/surefire-reports/TEST-*.xml 2>/dev/null | grep -q .; then
+            echo "No surefire reports found." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          REPORTS="target/surefire-reports/TEST-*.xml"
+          T=$(grep -hEo 'tests="[0-9]+"'    $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          F=$(grep -hEo 'failures="[0-9]+"' $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          E=$(grep -hEo 'errors="[0-9]+"'   $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          S=$(grep -hEo 'skipped="[0-9]+"'  $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          P=$((T - F - E - S))
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          if [ "$((F + E))" -eq 0 ]; then
+            TEST_LABEL="${T}%20passed"
+            TEST_COLOR="success"
+            BUILD_LABEL="passing"
+            BUILD_COLOR="success"
+          else
+            TEST_LABEL="${F}%20failed"
+            TEST_COLOR="critical"
+            BUILD_LABEL="failing"
+            BUILD_COLOR="critical"
+          fi
+          {
+            echo "> [!NOTE]"
+            echo "> Build · Commit \`${SHORT_SHA}\` · Branch \`${GITHUB_REF_NAME}\` · Java 21"
+            echo ""
+            echo "## Test results"
+            echo ""
+            echo "![Tests](https://img.shields.io/badge/tests-${TEST_LABEL}-${TEST_COLOR}?style=flat-square)"
+            echo "![Build](https://img.shields.io/badge/build-${BUILD_LABEL}-${BUILD_COLOR}?style=flat-square)"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|---|---|"
+            echo "| Tests   | $T ✅ |"
+            echo "| Passed  | $P |"
+            echo "| Failed  | $F |"
+            echo "| Errors  | $E |"
+            echo "| Skipped | $S |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write coverage summary
+        if: always()
+        working-directory: backend/padel-manager
+        run: |
+          if [ ! -f target/site/jacoco/jacoco.csv ]; then
+            echo "No JaCoCo report found (tests may have failed before coverage was collected)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          TOTAL=$(awk -F',' '
+            NR > 1 { im += $4; ic += $5 }
+            END {
+              it = im + ic
+              print (it > 0) ? int(100 * ic / it + 0.5) : 0
+            }
+          ' target/site/jacoco/jacoco.csv)
+          if [ "$TOTAL" -ge 75 ]; then COV_COLOR="success"
+          elif [ "$TOTAL" -ge 50 ]; then COV_COLOR="yellow"
+          else COV_COLOR="critical"
+          fi
+          {
+            echo "## Code coverage"
+            echo ""
+            echo "![Coverage](https://img.shields.io/badge/coverage-${TOTAL}%25-${COV_COLOR}?style=flat-square)"
+            echo ""
+            echo "<details>"
+            echo "<summary><b>Coverage breakdown by package</b> (click to expand)</summary>"
+            echo ""
+            echo "| Package | Instructions | Branches |"
+            echo "|---|---|---|"
+            awk -F',' '
+              NR == 1 { next }
+              {
+                pkg = $2
+                pkg_im[pkg] += $4; pkg_ic[pkg] += $5
+                pkg_bm[pkg] += $6; pkg_bc[pkg] += $7
+              }
+              END {
+                for (pkg in pkg_ic) {
+                  it = pkg_im[pkg] + pkg_ic[pkg]
+                  ip = (it > 0) ? int(100 * pkg_ic[pkg] / it + 0.5) : 0
+                  bt = pkg_bm[pkg] + pkg_bc[pkg]
+                  if (ip >= 75) i_emoji = "🟢"
+                  else if (ip >= 50) i_emoji = "🟡"
+                  else i_emoji = "🔴"
+                  if (bt > 0) {
+                    bp = int(100 * pkg_bc[pkg] / bt + 0.5)
+                    if (bp >= 75) b_emoji = "🟢"
+                    else if (bp >= 50) b_emoji = "🟡"
+                    else b_emoji = "🔴"
+                    b_col = b_emoji " " bp "%"
+                  } else {
+                    b_col = "n/a"
+                  }
+                  print "| " pkg " | " i_emoji " " ip "% | " b_col " |"
+                }
+              }
+            ' target/site/jacoco/jacoco.csv | sort
+            awk -F',' '
+              NR > 1 { im += $4; ic += $5; bm += $6; bc += $7 }
+              END {
+                it = im + ic; ip = (it > 0) ? int(100 * ic / it + 0.5) : 0
+                bt = bm + bc; bp = (bt > 0) ? int(100 * bc / bt + 0.5) : 0
+                if (ip >= 75) i_emoji = "🟢"
+                else if (ip >= 50) i_emoji = "🟡"
+                else i_emoji = "🔴"
+                if (bt > 0) {
+                  if (bp >= 75) b_emoji = "🟢"
+                  else if (bp >= 50) b_emoji = "🟡"
+                  else b_emoji = "🔴"
+                  b_col = b_emoji " " bp "%"
+                } else {
+                  b_col = "n/a"
+                }
+                print "| **Total** | **" i_emoji " " ip "%** | **" b_col "** |"
+              }
+            ' target/site/jacoco/jacoco.csv
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "> [!TIP]"
+            echo "> JaCoCo HTML report is available as a workflow artifact below."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/padel-manager/target/site/jacoco/
+          retention-days: 14
