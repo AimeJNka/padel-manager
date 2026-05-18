@@ -53,6 +53,17 @@ public class TerrainService implements ITerrainService {
         return toDTO(terrainRepo.save(terrain));
     }
 
+    @Override
+    public void delete(Integer idSite, Integer idTerrain, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
+        Terrain terrain = terrainRepo.findById(idTerrain)
+                .orElseThrow(() -> new NotFoundException("Terrain introuvable : " + idTerrain));
+        if (!idSite.equals(terrain.getSite().getIdSite())) {
+            throw new NotFoundException("Terrain introuvable pour ce site");
+        }
+        terrainRepo.deleteById(idTerrain);
+    }
+
     private TerrainDTO toDTO(Terrain t) {
         TerrainDTO dto = new TerrainDTO();
         dto.setIdTerrain(t.getIdTerrain());

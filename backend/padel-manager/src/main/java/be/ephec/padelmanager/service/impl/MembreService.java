@@ -1,16 +1,23 @@
 package be.ephec.padelmanager.service.impl;
 
+import be.ephec.padelmanager.config.Role;
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
 import be.ephec.padelmanager.dto.PersonneDTO;
 import be.ephec.padelmanager.dto.SiteDTO;
 import be.ephec.padelmanager.dto.TypeMembreDTO;
+import be.ephec.padelmanager.dto.UpdateMembreRequest;
+import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
+import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.repository.MembreRepo;
+import be.ephec.padelmanager.repository.PersonneRepo;
 import be.ephec.padelmanager.service.IMembreService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,6 +26,7 @@ import java.util.List;
 public class MembreService implements IMembreService {
 
     private final MembreRepo membreRepo;
+    private final PersonneRepo personneRepo;
 
     @Override
     public MembreProfilDTO getProfil(String matricule) {
@@ -32,6 +40,30 @@ public class MembreService implements IMembreService {
         return membreRepo.findAll().stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    @Override
+    public MembreProfilDTO getOne(String matricule) {
+        return getProfil(matricule);
+    }
+
+    @Override
+    @Transactional
+    public MembreProfilDTO updateMembre(String matricule, UpdateMembreRequest request, Authentication auth) {
+        boolean isAdminGlobal = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Role.ADMIN_GLOBAL.authority()));
+        if (!isAdminGlobal && !matricule.equals(auth.getName())) {
+            throw new ForbiddenException("Accès interdit");
+        }
+        Membre membre = membreRepo.findById(matricule)
+                .orElseThrow(() -> new NotFoundException("Membre introuvable : " + matricule));
+        Personne personne = membre.getPersonne();
+        if (personne != null) {
+            if (request.getEmail() != null) personne.setEmail(request.getEmail());
+            if (request.getTelephone() != null) personne.setTelephone(request.getTelephone());
+            personneRepo.save(personne);
+        }
+        return toProfilDTO(membre);
     }
 
     private MembreProfilDTO toProfilDTO(Membre m) {

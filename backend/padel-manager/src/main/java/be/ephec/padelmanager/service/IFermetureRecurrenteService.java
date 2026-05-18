@@ -8,4 +8,5 @@ import java.util.List;
 public interface IFermetureRecurrenteService {
     List<FermetureRecurrenteDTO> findBySite(Integer idSite);
     FermetureRecurrenteDTO create(Integer idSite, FermetureRecurrenteDTO dto, Authentication authentication);
+    void delete(Integer idSite, Integer idFermeture, Authentication authentication);
 }

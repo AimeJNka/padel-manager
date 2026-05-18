@@ -1,6 +1,7 @@
 package be.ephec.padelmanager.controller;
 
 import be.ephec.padelmanager.dto.HoraireAnnuelDTO;
+import be.ephec.padelmanager.dto.UpdateHoraireRequest;
 import be.ephec.padelmanager.service.IHoraireAnnuelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,5 +29,15 @@ public class HoraireAnnuelController {
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
     public ResponseEntity<HoraireAnnuelDTO> create(@PathVariable Integer idSite, @Valid @RequestBody HoraireAnnuelDTO dto, Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(horaireService.create(idSite, dto, authentication));
+    }
+
+    @PutMapping("/{idHoraire}")
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<HoraireAnnuelDTO> update(
+            @PathVariable Integer idSite,
+            @PathVariable Integer idHoraire,
+            @Valid @RequestBody UpdateHoraireRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(horaireService.update(idSite, idHoraire, request, authentication));
     }
 }

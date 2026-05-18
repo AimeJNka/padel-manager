@@ -49,4 +49,24 @@ public class FermetureController {
             Authentication authentication) {
         return ResponseEntity.status(HttpStatus.CREATED).body(fermeturePonctuelleService.create(idSite, dto, authentication));
     }
+
+    @DeleteMapping("/recurrentes/{rid}")
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<Void> deleteRecurrente(
+            @PathVariable Integer idSite,
+            @PathVariable Integer rid,
+            Authentication authentication) {
+        fermetureRecurrenteService.delete(idSite, rid, authentication);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/ponctuelles/{pid}")
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<Void> deletePonctuelle(
+            @PathVariable Integer idSite,
+            @PathVariable Integer pid,
+            Authentication authentication) {
+        fermeturePonctuelleService.delete(idSite, pid, authentication);
+        return ResponseEntity.noContent().build();
+    }
 }

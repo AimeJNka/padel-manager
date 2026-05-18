@@ -2,7 +2,9 @@ package be.ephec.padelmanager.controller;
 
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
+import be.ephec.padelmanager.dto.UpdateMembreRequest;
 import be.ephec.padelmanager.service.IMembreService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,5 +30,19 @@ public class MembreController {
     @PreAuthorize("hasRole('ADMIN_GLOBAL')")
     public ResponseEntity<List<MembreDTO>> getAll() {
         return ResponseEntity.ok(membreService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN_GLOBAL')")
+    public ResponseEntity<MembreProfilDTO> getOne(@PathVariable String id) {
+        return ResponseEntity.ok(membreService.getOne(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<MembreProfilDTO> update(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateMembreRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(membreService.updateMembre(id, request, authentication));
     }
 }

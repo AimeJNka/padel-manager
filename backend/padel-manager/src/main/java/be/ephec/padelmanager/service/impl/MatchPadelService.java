@@ -28,8 +28,14 @@ import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
 import be.ephec.padelmanager.service.IPenaliteService;
 import be.ephec.padelmanager.config.MatchPolicy;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -425,5 +432,46 @@ public class MatchPadelService implements IMatchPadelService {
             dto.setTypeMembre(t);
         }
         return dto;
+    }
+
+    @Override
+    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth) {
+        return matchPadelRepo.findAll(buildMatchSpec(siteId, statut, type, mine, auth), pageable)
+                .map(this::toDTO);
+    }
+
+    @Override
+    public MatchPadelDTO getMatch(Integer idMatch, Authentication auth) {
+        return toDTO(resolveMatch(idMatch));
+    }
+
+    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, Authentication auth) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (siteId != null) {
+                predicates.add(cb.equal(root.get("disponibilite").get("terrain").get("site").get("idSite"), siteId));
+            }
+            if (statut != null) {
+                predicates.add(cb.equal(root.get("statut"), statut));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("typeMatch"), type));
+            }
+            if (Boolean.TRUE.equals(mine) && auth != null && auth.getName() != null) {
+                String matricule = auth.getName();
+                Subquery<Integer> sub = query.subquery(Integer.class);
+                Root<Participation> pRoot = sub.from(Participation.class);
+                sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                   .where(
+                       cb.equal(pRoot.get("membre").get("matricule"), matricule),
+                       cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
+                   );
+                predicates.add(cb.or(
+                    cb.equal(root.get("organisateur").get("matricule"), matricule),
+                    root.get("idMatch").in(sub)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 }

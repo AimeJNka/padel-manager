@@ -41,4 +41,14 @@ public class TerrainController {
             Authentication authentication) {
         return ResponseEntity.ok(terrainService.update(idTerrain, dto, authentication));
     }
+
+    @DeleteMapping("/{idTerrain}")
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<Void> delete(
+            @PathVariable Integer idSite,
+            @PathVariable Integer idTerrain,
+            Authentication authentication) {
+        terrainService.delete(idSite, idTerrain, authentication);
+        return ResponseEntity.noContent().build();
+    }
 }
