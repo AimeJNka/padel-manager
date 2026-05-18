@@ -2,6 +2,7 @@ package be.ephec.padelmanager.dto;
 
 import be.ephec.padelmanager.model.Membre;
 import be.ephec.padelmanager.model.Penalite;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,7 @@ class PenaliteDTOTest {
         penalite.setIdPenalite(1);
         penalite.setMembre(membre);
         penalite.setDateDebut(LocalDateTime.now().minusDays(1));
-        penalite.setDateFin(LocalDateTime.now().plusDays(7));
+        penalite.setDateFin(LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS));
         penalite.setMotif("Absence non justifiée");
 
         PenaliteDTO dto = PenaliteDTO.from(penalite);
@@ -43,7 +44,7 @@ class PenaliteDTOTest {
         penalite.setIdPenalite(2);
         penalite.setMembre(membre);
         penalite.setDateDebut(LocalDateTime.now().minusDays(1));
-        penalite.setDateFin(LocalDateTime.now().plusDays(7));
+        penalite.setDateFin(LocalDateTime.now().plusDays(MatchPolicy.DUREE_PENALITE_JOURS));
         penalite.setMotif("Comportement");
 
         PenaliteDTO dto = PenaliteDTO.from(penalite);

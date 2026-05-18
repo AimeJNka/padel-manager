@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,13 +27,13 @@ public class PenaliteController {
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('GLOBAL','SITE','LIBRE')")
-    public List<PenaliteDTO> mesPenalites(Authentication auth) {
-        return penaliteService.listerPenalitesMembre(auth);
+    public ResponseEntity<List<PenaliteDTO>> mesPenalites(Authentication auth) {
+        return ResponseEntity.ok(penaliteService.listerPenalitesMembre(auth));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL','ADMIN_SITE')")
-    public Page<PenaliteDTO> lister(
+    public ResponseEntity<Page<PenaliteDTO>> lister(
             @RequestParam(required = false) String matricule,
             @RequestParam(required = false) Boolean activeOnly,
             @RequestParam(required = false) Integer siteId,
@@ -40,15 +41,15 @@ public class PenaliteController {
             @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
         size = Math.min(size, 100);
-        return penaliteService.listerPenalitesAdmin(
+        return ResponseEntity.ok(penaliteService.listerPenalitesAdmin(
                 matricule, activeOnly, siteId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateDebut")),
-                auth);
+                auth));
     }
 
     @PostMapping("/{id}/annuler")
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL','ADMIN_SITE')")
-    public PenaliteDTO annuler(@PathVariable Integer id, Authentication auth) {
-        return penaliteService.annulerPenalite(id, auth);
+    public ResponseEntity<PenaliteDTO> annuler(@PathVariable Integer id, Authentication auth) {
+        return ResponseEntity.ok(penaliteService.annulerPenalite(id, auth));
     }
 }

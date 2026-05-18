@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.PaiementDTO;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -17,6 +18,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,7 +81,7 @@ class PaiementAdminIntegrationTest {
         dispo.setTerrain(terrain);
         dispo.setDateHeureDebut(LocalDateTime.now().plusDays(2));
         dispo.setDateHeureFin(LocalDateTime.now().plusDays(2).plusMinutes(90));
-        dispo.setStatut("RESERVE");
+        dispo.setStatut(DisponibiliteStatus.RESERVE);
         disponibiliteRepo.save(dispo);
 
         MatchPadel match = new MatchPadel();
@@ -87,7 +89,7 @@ class PaiementAdminIntegrationTest {
         match.setOrganisateur(membre);
         match.setTypeMatch(MatchType.PUBLIC);
         match.setStatut(MatchStatus.EN_ATTENTE);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDateCreation(LocalDateTime.now());
         matchPadelRepo.save(match);
 
@@ -100,7 +102,7 @@ class PaiementAdminIntegrationTest {
 
         Paiement paiement = new Paiement();
         paiement.setParticipation(participation);
-        paiement.setMontant(new BigDecimal("15.00"));
+        paiement.setMontant(MatchPolicy.PRIX_PLACE_EUR);
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setStatut(PaiementStatus.EN_ATTENTE);
         paiement.setDatePaiement(LocalDateTime.now());

@@ -163,7 +163,7 @@ class DisponibiliteServiceTest {
         Disponibilite reserved = new Disponibilite();
         reserved.setTerrain(terrain);
         reserved.setDateHeureDebut(LocalDateTime.of(2026, 3, 9, 9, 0));
-        reserved.setStatut("RESERVE");
+        reserved.setStatut(DisponibiliteStatus.RESERVE);
 
         when(disponibiliteRepo.findByTerrainSiteIdSiteAndDateHeureDebutBetween(eq(SITE_ID), any(), any()))
                 .thenReturn(List.of(reserved));

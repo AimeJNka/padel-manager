@@ -4,6 +4,7 @@ import be.ephec.padelmanager.dto.TerrainDTO;
 import be.ephec.padelmanager.service.ITerrainService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -29,7 +30,7 @@ public class TerrainController {
             @PathVariable Integer idSite,
             @Valid @RequestBody TerrainDTO dto,
             Authentication authentication) {
-        return ResponseEntity.ok(terrainService.create(idSite, dto, authentication));
+        return ResponseEntity.status(HttpStatus.CREATED).body(terrainService.create(idSite, dto, authentication));
     }
 
     @PutMapping("/{idTerrain}")
@@ -39,5 +40,15 @@ public class TerrainController {
             @Valid @RequestBody TerrainDTO dto,
             Authentication authentication) {
         return ResponseEntity.ok(terrainService.update(idTerrain, dto, authentication));
+    }
+
+    @DeleteMapping("/{idTerrain}")
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<Void> delete(
+            @PathVariable Integer idSite,
+            @PathVariable Integer idTerrain,
+            Authentication authentication) {
+        terrainService.delete(idSite, idTerrain, authentication);
+        return ResponseEntity.noContent().build();
     }
 }

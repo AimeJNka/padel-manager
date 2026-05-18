@@ -42,6 +42,17 @@ public class FermeturePonctuelleService implements IFermeturePonctuelleService {
         return toDTO(fermetureRepo.save(fermeture));
     }
 
+    @Override
+    public void delete(Integer idSite, Integer idFermeture, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
+        FermeturePonctuelle fermeture = fermetureRepo.findById(idFermeture)
+                .orElseThrow(() -> new NotFoundException("Fermeture ponctuelle introuvable : " + idFermeture));
+        if (!idSite.equals(fermeture.getSite().getIdSite())) {
+            throw new NotFoundException("Fermeture ponctuelle introuvable pour ce site");
+        }
+        fermetureRepo.deleteById(idFermeture);
+    }
+
     private FermeturePonctuelleDTO toDTO(FermeturePonctuelle f) {
         FermeturePonctuelleDTO dto = new FermeturePonctuelleDTO();
         dto.setIdFermeturePonctuelle(f.getIdFermeturePonctuelle());

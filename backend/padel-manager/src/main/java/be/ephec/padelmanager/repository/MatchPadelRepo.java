@@ -2,13 +2,14 @@ package be.ephec.padelmanager.repository;
 
 import be.ephec.padelmanager.model.MatchPadel;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-public interface MatchPadelRepo extends JpaRepository<MatchPadel, Integer> {
+public interface MatchPadelRepo extends JpaRepository<MatchPadel, Integer>, JpaSpecificationExecutor<MatchPadel> {
 
     /**
      * Fetch matches by type and statut whose slot starts on or before {@code threshold}.

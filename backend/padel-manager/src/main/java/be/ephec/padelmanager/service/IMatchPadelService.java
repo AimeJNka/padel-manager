@@ -1,6 +1,8 @@
 package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.MatchPadelDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 
 public interface IMatchPadelService {
@@ -36,4 +38,6 @@ public interface IMatchPadelService {
      * @return le nombre de matchs effectivement traités (transitionnés vers DEMARRE)
      */
     int traiterSoldeMatchesDemarres();
+    Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth);
+    MatchPadelDTO getMatch(Integer idMatch, Authentication auth);
 }

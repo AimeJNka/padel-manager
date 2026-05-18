@@ -42,6 +42,17 @@ public class FermetureRecurrenteService implements IFermetureRecurrenteService {
         return toDTO(fermetureRepo.save(fermeture));
     }
 
+    @Override
+    public void delete(Integer idSite, Integer idFermeture, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
+        FermetureRecurrente fermeture = fermetureRepo.findById(idFermeture)
+                .orElseThrow(() -> new NotFoundException("Fermeture récurrente introuvable : " + idFermeture));
+        if (!idSite.equals(fermeture.getSite().getIdSite())) {
+            throw new NotFoundException("Fermeture récurrente introuvable pour ce site");
+        }
+        fermetureRepo.deleteById(idFermeture);
+    }
+
     private FermetureRecurrenteDTO toDTO(FermetureRecurrente f) {
         FermetureRecurrenteDTO dto = new FermetureRecurrenteDTO();
         dto.setIdFermetureRecurrente(f.getIdFermetureRecurrente());

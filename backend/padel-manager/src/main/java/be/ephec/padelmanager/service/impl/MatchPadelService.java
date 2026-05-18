@@ -12,6 +12,7 @@ import be.ephec.padelmanager.exception.ConflictException;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
@@ -26,7 +27,15 @@ import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IMatchPadelService;
 import be.ephec.padelmanager.service.IPaiementService;
 import be.ephec.padelmanager.service.IPenaliteService;
+import be.ephec.padelmanager.config.MatchPolicy;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,17 +43,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class MatchPadelService implements IMatchPadelService {
-
-    private static final Logger log = LoggerFactory.getLogger(MatchPadelService.class);
-    private static final BigDecimal PRIX_PLACE_EUR = BigDecimal.valueOf(15);
 
     private final MatchPadelRepo matchPadelRepo;
     private final ParticipationRepo participationRepo;
@@ -96,7 +102,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, joueur.getMatricule())) {
             throw new ConflictException("Le joueur est déjà inscrit au match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= MatchPolicy.NB_JOUEURS_MATCH) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
@@ -148,7 +154,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(idMatch, membre.getMatricule())) {
             throw new ConflictException("Vous êtes déjà inscrit à ce match");
         }
-        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= 4) {
+        if (participationRepo.countByMatchPadelIdMatchAndStatutNot(idMatch, ParticipationStatus.ANNULEE) >= MatchPolicy.NB_JOUEURS_MATCH) {
             throw new BadRequestException("Le match est complet (4 joueurs maximum)");
         }
 
@@ -177,13 +183,13 @@ public class MatchPadelService implements IMatchPadelService {
             throw new BadRequestException("Créneau invalide");
         }
         long heuresRestantes = ChronoUnit.HOURS.between(LocalDateTime.now(), dispo.getDateHeureDebut());
-        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? 24 : 48;
+        long delaiRequis = MatchType.PUBLIC.equals(match.getTypeMatch()) ? MatchPolicy.DELAI_ANNULATION_PUBLIC_H : MatchPolicy.DELAI_ANNULATION_PRIVE_H;
         if (heuresRestantes < delaiRequis) {
             throw new BadRequestException(
                     "Annulation impossible : délai minimum de " + delaiRequis + " heures non respecté");
         }
 
-        dispo.setStatut("LIBRE");
+        dispo.setStatut(DisponibiliteStatus.LIBRE);
         disponibiliteRepo.save(dispo);
 
         List<Participation> participations = participationRepo.findByMatchPadelIdMatch(idMatch);
@@ -213,17 +219,17 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public int basculerMatchesIncomplets() {
         List<MatchPadel> candidats = matchPadelRepo.findByTypeMatchAndStatutAndDispoDebutBefore(
-                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+                MatchType.PRIVE, MatchStatus.EN_ATTENTE, LocalDateTime.now().plusHours(MatchPolicy.DELAI_PAIEMENT_H));
         int count = 0;
         for (MatchPadel match : candidats) {
             long confirmes = participationRepo.countByMatchIdAndStatut(
                     match.getIdMatch(), ParticipationStatus.CONFIRME);
-            if (confirmes < 4) {
+            if (confirmes < MatchPolicy.NB_JOUEURS_MATCH) {
                 match.setTypeMatch(MatchType.PUBLIC);
                 // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
                 matchPadelRepo.save(match);
                 penaliteService.appliquerPenalite(
-                        match.getOrganisateur(), 7,
+                        match.getOrganisateur(), MatchPolicy.DUREE_PENALITE_JOURS,
                         String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
                 count++;
             }
@@ -263,9 +269,9 @@ public class MatchPadelService implements IMatchPadelService {
         for (MatchPadel match : eligibles) {
             long confirmes = participationRepo.countByMatchIdAndStatut(
                     match.getIdMatch(), ParticipationStatus.CONFIRME);
-            int placesVides = Math.max(0, 4 - (int) confirmes);
+            int placesVides = Math.max(0, MatchPolicy.NB_JOUEURS_MATCH - (int) confirmes);
             if (placesVides > 0) {
-                BigDecimal soldeAjout = PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
+                BigDecimal soldeAjout = MatchPolicy.PRIX_PLACE_EUR.multiply(BigDecimal.valueOf(placesVides));
                 Membre organisateur = match.getOrganisateur();
                 BigDecimal actuel = organisateur.getSoldeDu() != null
                         ? organisateur.getSoldeDu() : BigDecimal.ZERO;
@@ -293,7 +299,7 @@ public class MatchPadelService implements IMatchPadelService {
         if (membre.getSoldeDu() != null && membre.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Vous avez un solde dû");
         }
-        if (!"LIBRE".equals(dispo.getStatut())) {
+        if (!DisponibiliteStatus.LIBRE.equals(dispo.getStatut())) {
             throw new ConflictException("Le créneau n'est pas disponible");
         }
         LocalDateTime now = LocalDateTime.now();
@@ -314,7 +320,7 @@ public class MatchPadelService implements IMatchPadelService {
     }
 
     private MatchPadelDTO creerMatch(Membre organisateur, Disponibilite dispo, String typeMatch) {
-        dispo.setStatut("RESERVE");
+        dispo.setStatut(DisponibiliteStatus.RESERVE);
         disponibiliteRepo.save(dispo);
 
         MatchPadel match = new MatchPadel();
@@ -322,7 +328,7 @@ public class MatchPadelService implements IMatchPadelService {
         match.setOrganisateur(organisateur);
         match.setTypeMatch(typeMatch);
         match.setStatut(MatchStatus.EN_ATTENTE);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDateCreation(LocalDateTime.now());
         MatchPadel saved = matchPadelRepo.save(match);
 
@@ -426,5 +432,46 @@ public class MatchPadelService implements IMatchPadelService {
             dto.setTypeMembre(t);
         }
         return dto;
+    }
+
+    @Override
+    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth) {
+        return matchPadelRepo.findAll(buildMatchSpec(siteId, statut, type, mine, auth), pageable)
+                .map(this::toDTO);
+    }
+
+    @Override
+    public MatchPadelDTO getMatch(Integer idMatch, Authentication auth) {
+        return toDTO(resolveMatch(idMatch));
+    }
+
+    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, Authentication auth) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (siteId != null) {
+                predicates.add(cb.equal(root.get("disponibilite").get("terrain").get("site").get("idSite"), siteId));
+            }
+            if (statut != null) {
+                predicates.add(cb.equal(root.get("statut"), statut));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("typeMatch"), type));
+            }
+            if (Boolean.TRUE.equals(mine) && auth != null && auth.getName() != null) {
+                String matricule = auth.getName();
+                Subquery<Integer> sub = query.subquery(Integer.class);
+                Root<Participation> pRoot = sub.from(Participation.class);
+                sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                   .where(
+                       cb.equal(pRoot.get("membre").get("matricule"), matricule),
+                       cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
+                   );
+                predicates.add(cb.or(
+                    cb.equal(root.get("organisateur").get("matricule"), matricule),
+                    root.get("idMatch").in(sub)
+                ));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 }

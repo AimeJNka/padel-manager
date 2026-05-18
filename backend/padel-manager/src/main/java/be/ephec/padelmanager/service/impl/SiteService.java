@@ -1,6 +1,8 @@
 package be.ephec.padelmanager.service.impl;
 
 import be.ephec.padelmanager.dto.SiteDTO;
+import be.ephec.padelmanager.dto.UpdateSiteRequest;
+import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.service.ISiteService;
@@ -29,6 +31,17 @@ public class SiteService implements ISiteService {
         site.setAdresse(dto.getAdresse());
         site.setVille(dto.getVille());
         site.setActif(dto.getActif() != null ? dto.getActif() : true);
+        return toDTO(siteRepo.save(site));
+    }
+
+    @Override
+    public SiteDTO update(Integer siteId, UpdateSiteRequest request) {
+        Site site = siteRepo.findById(siteId)
+                .orElseThrow(() -> new NotFoundException("Site introuvable : " + siteId));
+        site.setNom(request.getNom());
+        site.setAdresse(request.getAdresse());
+        site.setVille(request.getVille());
+        if (request.getActif() != null) site.setActif(request.getActif());
         return toDTO(siteRepo.save(site));
     }
 

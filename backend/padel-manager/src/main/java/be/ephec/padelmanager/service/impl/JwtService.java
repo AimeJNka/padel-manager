@@ -42,6 +42,7 @@ public class JwtService implements IJwtService {
         return builder.compact();
     }
 
+    @Override
     public String generateAdminToken(String subject, String role, Integer idSite) {
         var builder = Jwts.builder()
                 .subject(subject)

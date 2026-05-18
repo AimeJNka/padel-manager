@@ -1,7 +1,11 @@
 package be.ephec.padelmanager.service.impl;
 
+import be.ephec.padelmanager.dto.DisponibiliteDTO;
+import be.ephec.padelmanager.dto.SiteDTO;
+import be.ephec.padelmanager.dto.TerrainDTO;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Disponibilite;
+import be.ephec.padelmanager.model.DisponibiliteStatus;
 import be.ephec.padelmanager.model.FermeturePonctuelle;
 import be.ephec.padelmanager.model.FermetureRecurrente;
 import be.ephec.padelmanager.model.HoraireAnnuel;
@@ -14,7 +18,12 @@ import be.ephec.padelmanager.repository.SiteRepo;
 import be.ephec.padelmanager.repository.TerrainRepo;
 import be.ephec.padelmanager.service.IDisponibiliteService;
 import be.ephec.padelmanager.service.SiteAccessChecker;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -61,7 +71,7 @@ public class DisponibiliteService implements IDisponibiliteService {
         Set<String> reservedKeys = disponibiliteRepo
                 .findByTerrainSiteIdSiteAndDateHeureDebutBetween(siteId, yearStart, yearEnd)
                 .stream()
-                .filter(d -> "RESERVE".equals(d.getStatut()))
+                .filter(d -> DisponibiliteStatus.RESERVE.equals(d.getStatut()))
                 .map(d -> d.getTerrain().getIdTerrain() + "_" + d.getDateHeureDebut())
                 .collect(Collectors.toSet());
 
@@ -114,7 +124,7 @@ public class DisponibiliteService implements IDisponibiliteService {
                         disponibilite.setTerrain(terrain);
                         disponibilite.setDateHeureDebut(slotStart);
                         disponibilite.setDateHeureFin(slotStart.plus(SLOT_DURATION));
-                        disponibilite.setStatut("LIBRE");
+                        disponibilite.setStatut(DisponibiliteStatus.LIBRE);
                         newDispos.add(disponibilite);
                     }
                     slotStart = slotStart.plus(SLOT_STEP);
@@ -124,5 +134,56 @@ public class DisponibiliteService implements IDisponibiliteService {
 
         disponibiliteRepo.saveAll(newDispos);
         return newDispos.size();
+    }
+
+    @Override
+    public Page<DisponibiliteDTO> listerDisponibilites(Integer siteId, Integer terrainId, LocalDate date, String statut, Pageable pageable) {
+        return disponibiliteRepo.findAll(buildListSpec(siteId, terrainId, date, statut), pageable)
+                .map(this::toDTO);
+    }
+
+    private Specification<Disponibilite> buildListSpec(Integer siteId, Integer terrainId, LocalDate date, String statut) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (siteId != null) {
+                predicates.add(cb.equal(root.get("terrain").get("site").get("idSite"), siteId));
+            }
+            if (terrainId != null) {
+                predicates.add(cb.equal(root.get("terrain").get("idTerrain"), terrainId));
+            }
+            if (date != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dateHeureDebut"), date.atStartOfDay()));
+                predicates.add(cb.lessThan(root.get("dateHeureDebut"), date.plusDays(1).atStartOfDay()));
+            }
+            if (statut != null) {
+                predicates.add(cb.equal(root.get("statut"), statut));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private DisponibiliteDTO toDTO(Disponibilite d) {
+        DisponibiliteDTO dto = new DisponibiliteDTO();
+        dto.setIdDispo(d.getIdDispo());
+        dto.setDateHeureDebut(d.getDateHeureDebut());
+        dto.setDateHeureFin(d.getDateHeureFin());
+        dto.setStatut(d.getStatut());
+        if (d.getTerrain() != null) {
+            TerrainDTO t = new TerrainDTO();
+            t.setIdTerrain(d.getTerrain().getIdTerrain());
+            t.setNumero(d.getTerrain().getNumero());
+            t.setStatut(d.getTerrain().getStatut());
+            if (d.getTerrain().getSite() != null) {
+                SiteDTO s = new SiteDTO();
+                s.setIdSite(d.getTerrain().getSite().getIdSite());
+                s.setNom(d.getTerrain().getSite().getNom());
+                s.setAdresse(d.getTerrain().getSite().getAdresse());
+                s.setVille(d.getTerrain().getSite().getVille());
+                s.setActif(d.getTerrain().getSite().getActif());
+                t.setSite(s);
+            }
+            dto.setTerrain(t);
+        }
+        return dto;
     }
 }

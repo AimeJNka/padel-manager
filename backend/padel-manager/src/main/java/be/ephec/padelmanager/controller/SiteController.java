@@ -1,9 +1,11 @@
 package be.ephec.padelmanager.controller;
 
 import be.ephec.padelmanager.dto.SiteDTO;
+import be.ephec.padelmanager.dto.UpdateSiteRequest;
 import be.ephec.padelmanager.service.ISiteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,14 @@ public class SiteController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN_GLOBAL')")
     public ResponseEntity<SiteDTO> create(@Valid @RequestBody SiteDTO dto) {
-        return ResponseEntity.ok(siteService.create(dto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(siteService.create(dto));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN_GLOBAL')")
+    public ResponseEntity<SiteDTO> update(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateSiteRequest request) {
+        return ResponseEntity.ok(siteService.update(id, request));
     }
 }

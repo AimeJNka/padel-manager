@@ -9,4 +9,5 @@ public interface ITerrainService {
     List<TerrainDTO> findBySite(Integer idSite);
     TerrainDTO create(Integer idSite, TerrainDTO dto, Authentication authentication);
     TerrainDTO update(Integer idTerrain, TerrainDTO dto, Authentication authentication);
+    void delete(Integer idSite, Integer idTerrain, Authentication authentication);
 }

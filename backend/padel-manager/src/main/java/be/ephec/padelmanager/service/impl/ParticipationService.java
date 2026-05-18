@@ -15,7 +15,9 @@ import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.repository.PenaliteRepo;
 import be.ephec.padelmanager.service.IParticipationService;
+import be.ephec.padelmanager.config.MatchPolicy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -52,7 +55,7 @@ public class ParticipationService implements IParticipationService {
     @Override
     public int libererPlacesNonPayees() {
         List<Participation> aLiberer = participationRepo.findByStatutAndMatchDispoDebutBefore(
-                ParticipationStatus.EN_ATTENTE, LocalDateTime.now().plusHours(24));
+                ParticipationStatus.EN_ATTENTE, LocalDateTime.now().plusHours(MatchPolicy.DELAI_PAIEMENT_H));
         if (aLiberer.isEmpty()) {
             return 0;
         }
@@ -104,13 +107,13 @@ public class ParticipationService implements IParticipationService {
             paiement.setStatut(PaiementStatus.ANNULE);
             if (!wasPaid) {
                 BigDecimal current = membre.getSoldeDu() != null ? membre.getSoldeDu() : BigDecimal.ZERO;
-                membre.setSoldeDu(current.add(new BigDecimal("15.00")));
+                membre.setSoldeDu(current.add(MatchPolicy.PRIX_PLACE_EUR));
                 membreRepo.save(membre);
             }
             Penalite pen = new Penalite();
             pen.setMembre(membre);
             pen.setDateDebut(now);
-            pen.setDateFin(now.plusDays(7));
+            pen.setDateFin(now.plusDays(MatchPolicy.DUREE_PENALITE_JOURS));
             pen.setMotif("ANNULATION_TARDIVE");
             penaliteRepo.save(pen);
         } else {

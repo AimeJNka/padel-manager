@@ -2,6 +2,7 @@ package be.ephec.padelmanager.service.impl;
 
 import be.ephec.padelmanager.dto.HoraireAnnuelDTO;
 import be.ephec.padelmanager.dto.SiteDTO;
+import be.ephec.padelmanager.dto.UpdateHoraireRequest;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.HoraireAnnuel;
 import be.ephec.padelmanager.model.Site;
@@ -40,6 +41,19 @@ public class HoraireAnnuelService implements IHoraireAnnuelService {
         horaire.setAnnee(dto.getAnnee());
         horaire.setHeureOuverture(dto.getHeureOuverture());
         horaire.setHeureFermeture(dto.getHeureFermeture());
+        return toDTO(horaireRepo.save(horaire));
+    }
+
+    @Override
+    public HoraireAnnuelDTO update(Integer idSite, Integer idHoraire, UpdateHoraireRequest request, Authentication authentication) {
+        siteAccessChecker.check(authentication, idSite);
+        HoraireAnnuel horaire = horaireRepo.findById(idHoraire)
+                .orElseThrow(() -> new NotFoundException("Horaire introuvable : " + idHoraire));
+        if (!idSite.equals(horaire.getSite().getIdSite())) {
+            throw new NotFoundException("Horaire introuvable pour ce site");
+        }
+        horaire.setHeureOuverture(request.getHeureOuverture());
+        horaire.setHeureFermeture(request.getHeureFermeture());
         return toDTO(horaireRepo.save(horaire));
     }
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,19 +27,19 @@ public class PaiementController {
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('GLOBAL','SITE','LIBRE')")
-    public List<PaiementDTO> mesPaiements(Authentication auth) {
-        return paiementService.listerPaiementsMembre(auth);
+    public ResponseEntity<List<PaiementDTO>> mesPaiements(Authentication auth) {
+        return ResponseEntity.ok(paiementService.listerPaiementsMembre(auth));
     }
 
     @PostMapping("/{id}/payer")
     @PreAuthorize("hasAnyRole('GLOBAL','SITE','LIBRE')")
-    public PaiementDTO payer(@PathVariable Integer id, Authentication auth) {
-        return paiementService.payerParMembre(id, auth);
+    public ResponseEntity<PaiementDTO> payer(@PathVariable Integer id, Authentication auth) {
+        return ResponseEntity.ok(paiementService.payerParMembre(id, auth));
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL','ADMIN_SITE')")
-    public Page<PaiementDTO> lister(
+    public ResponseEntity<Page<PaiementDTO>> lister(
             @RequestParam(required = false) Integer matchId,
             @RequestParam(required = false) String matricule,
             @RequestParam(required = false) String statut,
@@ -47,15 +48,15 @@ public class PaiementController {
             @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
         size = Math.min(size, 100);
-        return paiementService.listerPaiementsAdmin(
+        return ResponseEntity.ok(paiementService.listerPaiementsAdmin(
                 matchId, matricule, statut, siteId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "datePaiement")),
-                auth);
+                auth));
     }
 
     @PostMapping("/{id}/rembourser")
     @PreAuthorize("hasAnyRole('ADMIN_GLOBAL','ADMIN_SITE')")
-    public PaiementDTO rembourser(@PathVariable Integer id, Authentication auth) {
-        return paiementService.rembourserPaiement(id, auth);
+    public ResponseEntity<PaiementDTO> rembourser(@PathVariable Integer id, Authentication auth) {
+        return ResponseEntity.ok(paiementService.rembourserPaiement(id, auth));
     }
 }

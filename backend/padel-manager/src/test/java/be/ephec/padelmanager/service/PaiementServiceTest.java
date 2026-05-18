@@ -14,6 +14,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PaiementRepo;
 import be.ephec.padelmanager.repository.ParticipationRepo;
 import be.ephec.padelmanager.service.impl.PaiementService;
+import be.ephec.padelmanager.config.MatchPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,7 +75,7 @@ class PaiementServiceTest {
 
         MatchPadel match = new MatchPadel();
         match.setIdMatch(1);
-        match.setMontantTotal(new BigDecimal("60.00"));
+        match.setMontantTotal(MatchPolicy.PRIX_TOTAL_MATCH);
         match.setDisponibilite(dispo);
 
         Participation participation = new Participation();
@@ -86,7 +87,7 @@ class PaiementServiceTest {
         Paiement paiement = new Paiement();
         paiement.setIdPaiement(PAIEMENT_ID);
         paiement.setParticipation(participation);
-        paiement.setMontant(new BigDecimal("15.00"));
+        paiement.setMontant(MatchPolicy.PRIX_PLACE_EUR);
         paiement.setSoldeInclus(BigDecimal.ZERO);
         paiement.setStatut(statut);
         return paiement;
