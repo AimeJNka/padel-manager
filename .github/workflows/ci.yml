@@ -1,0 +1,135 @@
+# CI workflow for padel-manager backend.
+#
+# Notes:
+#   1. The postgres service is required for PadelManagerApplicationTests, which uses plain
+#      @SpringBootTest (no Testcontainers) and needs a real datasource at context-load time.
+#      The three integration test classes bring their own Testcontainers containers and do
+#      not rely on this service.
+#
+#   2. JWT_SECRET is a CI-only fake value — NOT a production secret.
+#      Minimum 32 characters to satisfy JJWT HS256 key length requirement.
+#
+#   3. The JaCoCo artifact is uploaded for coverage visibility.
+#      No gate is enforced — this is a baseline reference only.
+
+name: Backend CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Build & Test (Java 21)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: padel_manager
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d padel_manager"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_USERNAME: test
+      DB_PASSWORD: test
+      JWT_SECRET: ci-only-fake-secret-not-used-in-production-32ch
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Run tests with JaCoCo
+        working-directory: backend/padel-manager
+        run: ./mvnw test
+
+      - name: Write test summary
+        if: always()
+        working-directory: backend/padel-manager
+        run: |
+          if ! ls target/surefire-reports/TEST-*.xml 2>/dev/null | grep -q .; then
+            echo "No surefire reports found." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          REPORTS="target/surefire-reports/TEST-*.xml"
+          T=$(grep -hEo 'tests="[0-9]+"'    $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          F=$(grep -hEo 'failures="[0-9]+"' $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          E=$(grep -hEo 'errors="[0-9]+"'   $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          S=$(grep -hEo 'skipped="[0-9]+"'  $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
+          P=$((T - F - E - S))
+          {
+            echo "## Test results"
+            echo ""
+            echo "| Metric | Value |"
+            echo "|---|---|"
+            echo "| Tests   | $T |"
+            echo "| Passed  | $P |"
+            echo "| Failed  | $F |"
+            echo "| Errors  | $E |"
+            echo "| Skipped | $S |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write coverage summary
+        if: always()
+        working-directory: backend/padel-manager
+        run: |
+          if [ ! -f target/site/jacoco/jacoco.csv ]; then
+            echo "No JaCoCo report found (tests may have failed before coverage was collected)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          {
+            echo "## Code coverage"
+            echo ""
+            echo "| Package | Instructions | Branches |"
+            echo "|---|---|---|"
+            awk -F',' '
+              NR == 1 { next }
+              {
+                pkg = $2
+                pkg_im[pkg] += $4; pkg_ic[pkg] += $5
+                pkg_bm[pkg] += $6; pkg_bc[pkg] += $7
+              }
+              END {
+                for (pkg in pkg_ic) {
+                  it = pkg_im[pkg] + pkg_ic[pkg]
+                  ip = (it > 0) ? int(100 * pkg_ic[pkg] / it + 0.5) : 0
+                  bt = pkg_bm[pkg] + pkg_bc[pkg]
+                  bp = (bt > 0) ? (int(100 * pkg_bc[pkg] / bt + 0.5) "%") : "n/a"
+                  print "| " pkg " | " ip "% | " bp " |"
+                }
+              }
+            ' target/site/jacoco/jacoco.csv | sort
+            awk -F',' '
+              NR > 1 { im += $4; ic += $5; bm += $6; bc += $7 }
+              END {
+                it = im + ic; ip = (it > 0) ? int(100 * ic / it + 0.5) : 0
+                bt = bm + bc; bp = (bt > 0) ? int(100 * bc / bt + 0.5) : 0
+                print "| **Total** | **" ip "%** | **" bp "%** |"
+              }
+            ' target/site/jacoco/jacoco.csv
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload JaCoCo coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/padel-manager/target/site/jacoco/
+          retention-days: 14
