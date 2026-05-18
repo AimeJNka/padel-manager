@@ -16,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
@@ -68,6 +69,17 @@ class PenaliteServiceTest {
 
     private Authentication authGlobal() {
         return new TestingAuthenticationToken("admin", null, "ROLE_ADMIN_GLOBAL");
+    }
+
+    // ── listerPenalitesAdmin ────────────────────────────
+
+    @Test
+    void listerPenalitesAdmin_adminSiteQueryingDifferentSite_throwsForbidden() {
+        TestingAuthenticationToken auth = new TestingAuthenticationToken("admin", null, "ROLE_ADMIN_SITE");
+        auth.setDetails(1);
+
+        assertThatThrownBy(() -> service.listerPenalitesAdmin(null, null, 2, Pageable.unpaged(), auth))
+                .isInstanceOf(ForbiddenException.class);
     }
 
     // ── annulerPenalite ──────────────────────────────

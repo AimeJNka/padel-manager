@@ -47,6 +47,15 @@ public class PenaliteService implements IPenaliteService {
             String matricule, Boolean activeOnly, Integer siteId,
             Pageable pageable, Authentication auth) {
 
+        boolean isSiteAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Role.ADMIN_SITE.authority()));
+        if (isSiteAdmin && siteId != null) {
+            Integer adminSiteId = (Integer) auth.getDetails();
+            if (adminSiteId != null && !siteId.equals(adminSiteId)) {
+                throw new ForbiddenException("Admin site ne peut pas consulter un autre site");
+            }
+        }
+
         Specification<Penalite> spec = buildSpec(matricule, activeOnly, siteId, auth);
         return penaliteRepo.findAll(spec, pageable).map(PenaliteDTO::from);
     }
@@ -84,7 +93,6 @@ public class PenaliteService implements IPenaliteService {
                     .anyMatch(a -> a.getAuthority().equals(Role.ADMIN_SITE.authority()));
 
             if (isSiteAdmin) {
-                // TODO M9: retourner 403 si siteId param != auth.getDetails() pour ADMIN_SITE au lieu de silently override
                 Integer adminSiteId = (Integer) auth.getDetails();
                 if (adminSiteId == null) {
                     throw new ForbiddenException("Accès refusé");
