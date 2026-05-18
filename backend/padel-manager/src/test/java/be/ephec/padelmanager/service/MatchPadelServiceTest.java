@@ -67,6 +67,7 @@ class MatchPadelServiceTest {
     private static final Integer DISPO_ID = 10;
     private static final Integer SITE_ID = 1;
     private static final Integer TERRAIN_ID = 1;
+    private static final String JOUEUR_MATRICULE = "G0002";
 
     @BeforeEach
     void setUp() {
@@ -478,6 +479,324 @@ class MatchPadelServiceTest {
                 .hasMessageContaining("999");
     }
 
+    // ════════════════════════════════════════════════════════════
+    // ajouterJoueur — action path with 9 guard scenarios
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    void ajouterJoueur_matchNotFound_throwsNotFoundException() {
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(NotFoundException.class);
+        verify(participationRepo, never()).save(any());
+        verify(paiementService, never()).creerPourParticipation(any());
+    }
+
+    @Test
+    void ajouterJoueur_matchAnnule_throwsBadRequest() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.ANNULE, org, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_callerNotOrganisateur_throwsForbidden() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs("G9999")))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_joueurNotFound_throwsNotFoundException() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining(JOUEUR_MATRICULE);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_joueurHasActivePenalty_throwsForbidden() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_joueurHasSoldeDu_throwsForbidden() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, BigDecimal.valueOf(15));
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_joueurAlreadyInscribed_throwsConflict() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, JOUEUR_MATRICULE)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(ConflictException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_matchAlreadyFull_throwsBadRequest() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, JOUEUR_MATRICULE)).thenReturn(false);
+        when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
+                ID_MATCH, ParticipationStatus.ANNULEE)).thenReturn(4L);
+
+        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void ajouterJoueur_validRequest_savesParticipationAndCallsPaiementService() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
+        Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, JOUEUR_MATRICULE)).thenReturn(false);
+        when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
+                ID_MATCH, ParticipationStatus.ANNULEE)).thenReturn(3L);
+
+        service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR));
+
+        ArgumentCaptor<Participation> participationCaptor = ArgumentCaptor.forClass(Participation.class);
+        verify(participationRepo).save(participationCaptor.capture());
+
+        ArgumentCaptor<Participation> paiementCaptor = ArgumentCaptor.forClass(Participation.class);
+        verify(paiementService).creerPourParticipation(paiementCaptor.capture());
+
+        Participation savedParticipation = participationCaptor.getValue();
+        assertThat(savedParticipation.getMatchPadel()).isEqualTo(match);
+        assertThat(savedParticipation.getMembre()).isEqualTo(joueur);
+        assertThat(savedParticipation.getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
+        assertThat(paiementCaptor.getValue()).isSameAs(savedParticipation);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // sInscrireMatchPublic — public-match self-registration with 10 guard scenarios
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    void sInscrireMatchPublic_matchNotPublic_throwsBadRequest() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+        verify(paiementService, never()).creerPourParticipation(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_matchAnnule_throwsBadRequest() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.ANNULE, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_membreHasActivePenalty_throwsForbidden() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, null);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(true);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_membreHasSoldeDu_throwsForbidden() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, null);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, BigDecimal.valueOf(15));
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_invalidDispoOrTerrainOrSite_throwsBadRequest() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, null);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_siteMismatch_throwsForbidden() {
+        Site siteA = buildSite(SITE_ID);
+        Site siteB = buildSite(2);
+        Terrain terrain = buildTerrain(TERRAIN_ID, siteA);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE, null, terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        Membre membre = buildMembre(ORGANISATEUR, null, siteB, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_slotInPast_throwsBadRequest() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().minusHours(1), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_slotBeyondReservationWindow_throwsBadRequest() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().plusDays(10), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        TypeMembre typeMembre = buildTypeMembre(false, 7);
+        Membre membre = buildMembre(ORGANISATEUR, typeMembre, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_alreadyInscribed_throwsConflict() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().plusHours(24), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, ORGANISATEUR)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(ConflictException.class);
+        verify(participationRepo, never()).save(any());
+    }
+
+    @Test
+    void sInscrireMatchPublic_validRequest_savesParticipationAndCallsPaiementService() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().plusHours(24), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        Membre membre = buildMembre(ORGANISATEUR, null, null, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
+        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
+                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, ORGANISATEUR)).thenReturn(false);
+        when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
+                ID_MATCH, ParticipationStatus.ANNULEE)).thenReturn(3L);
+
+        service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR));
+
+        ArgumentCaptor<Participation> participationCaptor = ArgumentCaptor.forClass(Participation.class);
+        verify(participationRepo).save(participationCaptor.capture());
+
+        ArgumentCaptor<Participation> paiementCaptor = ArgumentCaptor.forClass(Participation.class);
+        verify(paiementService).creerPourParticipation(paiementCaptor.capture());
+
+        Participation savedParticipation = participationCaptor.getValue();
+        assertThat(savedParticipation.getMatchPadel()).isEqualTo(match);
+        assertThat(savedParticipation.getMembre()).isEqualTo(membre);
+        assertThat(savedParticipation.getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
+        assertThat(paiementCaptor.getValue()).isSameAs(savedParticipation);
+    }
+
     // ════ helpers ═════════════════════════════════════════════════
 
     private static TypeMembre buildTypeMembre(boolean peutCreerMatch, Integer delaiReservationJours) {
@@ -517,6 +836,17 @@ class MatchPadelServiceTest {
         m.setTypeMembre(typeMembre);
         m.setSite(site);
         m.setSoldeDu(soldeDu);
+        return m;
+    }
+
+    private static MatchPadel buildMatch(Integer idMatch, String typeMatch, String statut,
+                                         Membre organisateur, Disponibilite dispo) {
+        MatchPadel m = new MatchPadel();
+        m.setIdMatch(idMatch);
+        m.setTypeMatch(typeMatch);
+        m.setStatut(statut);
+        m.setOrganisateur(organisateur);
+        m.setDisponibilite(dispo);
         return m;
     }
 }
