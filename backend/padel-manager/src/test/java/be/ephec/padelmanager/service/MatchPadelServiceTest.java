@@ -48,6 +48,11 @@ import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.model.Terrain;
 import be.ephec.padelmanager.model.TypeMembre;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @ExtendWith(MockitoExtension.class)
 class MatchPadelServiceTest {
@@ -795,6 +800,178 @@ class MatchPadelServiceTest {
         assertThat(savedParticipation.getMembre()).isEqualTo(membre);
         assertThat(savedParticipation.getStatut()).isEqualTo(ParticipationStatus.EN_ATTENTE);
         assertThat(paiementCaptor.getValue()).isSameAs(savedParticipation);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // annulerMatch — cancellation path with temporal + cascade logic
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    void annulerMatch_matchNotFound_throwsNotFoundException() {
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(NotFoundException.class);
+        verify(disponibiliteRepo, never()).save(any());
+        verify(matchPadelRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_callerNotOrganisateur_throwsForbidden() {
+        Membre autreOrg = buildMembre("AUTRE", null, null, null);
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.RESERVE,
+                LocalDateTime.now().plusHours(30), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, autreOrg, dispo);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(ForbiddenException.class);
+        verify(disponibiliteRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_matchAlreadyAnnule_throwsBadRequest() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().plusHours(30), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.ANNULE, org, dispo);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(disponibiliteRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_invalidDispo_throwsBadRequest() {
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, org, null);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(disponibiliteRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_publicMatchWithin24h_throwsBadRequest() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.RESERVE,
+                LocalDateTime.now().plusHours(20), terrain);
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, org, dispo);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(disponibiliteRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_priveMatchWithin48h_throwsBadRequest() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.RESERVE,
+                LocalDateTime.now().plusHours(40), terrain);
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, dispo);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR)))
+                .isInstanceOf(BadRequestException.class);
+        verify(disponibiliteRepo, never()).save(any());
+    }
+
+    @Test
+    void annulerMatch_publicMatch30hAhead_cascadeProperly() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.RESERVE,
+                LocalDateTime.now().plusHours(30), terrain);
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, org, dispo);
+        Participation p1 = new Participation();
+        p1.setStatut(ParticipationStatus.EN_ATTENTE);
+        Participation p2 = new Participation();
+        p2.setStatut(ParticipationStatus.EN_ATTENTE);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(participationRepo.findByMatchPadelIdMatch(ID_MATCH)).thenReturn(List.of(p1, p2));
+
+        service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR));
+
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.ANNULE);
+        assertThat(dispo.getStatut()).isEqualTo(DisponibiliteStatus.LIBRE);
+        assertThat(p1.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+        assertThat(p2.getStatut()).isEqualTo(ParticipationStatus.ANNULEE);
+        verify(paiementService, times(2)).annulerPourParticipation(any());
+        verify(disponibiliteRepo).save(dispo);
+        verify(participationRepo).saveAll(any(List.class));
+        verify(matchPadelRepo).save(match);
+    }
+
+    @Test
+    void annulerMatch_priveMatch72hAhead_cascadeProperly() {
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.RESERVE,
+                LocalDateTime.now().plusHours(72), terrain);
+        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, dispo);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(participationRepo.findByMatchPadelIdMatch(ID_MATCH)).thenReturn(List.of());
+
+        service.annulerMatch(ID_MATCH, authAs(ORGANISATEUR));
+
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.ANNULE);
+        assertThat(dispo.getStatut()).isEqualTo(DisponibiliteStatus.LIBRE);
+        verify(paiementService, never()).annulerPourParticipation(any());
+        verify(disponibiliteRepo).save(dispo);
+        verify(participationRepo).saveAll(any(List.class));
+        verify(matchPadelRepo).save(match);
+    }
+
+    /**
+     * Tests for listerMatchs verify INVOCATION ONLY:
+     * - matchPadelRepo.findAll(Specification, Pageable) is called
+     * - Filters propagate correctly through the call
+     *
+     * The JPA Criteria predicates built inside the Specification lambda
+     * are NOT validated at this layer — they require real EntityManager
+     * context (@DataJpaTest) to verify SQL generation. This is by design.
+     */
+    // ════════════════════════════════════════════════════════════
+    // listerMatchs — paginated listing (delegation tests only)
+    // ════════════════════════════════════════════════════════════
+
+    @Test
+    void listerMatchs_allFiltersNull_callsRepoFindAllWithSpec() {
+        when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, null,
+                PageRequest.of(0, 10), null);
+
+        verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
+        assertThat(result).isNotNull();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+    }
+
+    @Test
+    void listerMatchs_mineTrueWithAuth_callsRepoFindAllWithSpec() {
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, null);
+        when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(match)));
+
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, true,
+                PageRequest.of(0, 10), authAs(ORGANISATEUR));
+
+        verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
+        assertThat(result.getContent()).hasSize(1);
     }
 
     // ════ helpers ═════════════════════════════════════════════════
