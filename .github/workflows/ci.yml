@@ -1,4 +1,6 @@
 # CI workflow for padel-manager backend.
+# Produces an enriched job summary (test counts + coverage bands) on every run.
+# Jury reference build: ade2c1f — 76 tests, 28% instruction coverage (baseline).
 #
 # Notes:
 #   1. The postgres service is required for PadelManagerApplicationTests, which uses plain
@@ -13,6 +15,9 @@
 #      No gate is enforced — this is a baseline reference only.
 
 name: Backend CI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
   push:
@@ -74,12 +79,30 @@ jobs:
           E=$(grep -hEo 'errors="[0-9]+"'   $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
           S=$(grep -hEo 'skipped="[0-9]+"'  $REPORTS | grep -oE '[0-9]+' | awk '{s+=$1} END {print s+0}')
           P=$((T - F - E - S))
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          if [ "$((F + E))" -eq 0 ]; then
+            TEST_LABEL="${T}%20passed"
+            TEST_COLOR="success"
+            BUILD_LABEL="passing"
+            BUILD_COLOR="success"
+          else
+            TEST_LABEL="${F}%20failed"
+            TEST_COLOR="critical"
+            BUILD_LABEL="failing"
+            BUILD_COLOR="critical"
+          fi
           {
+            echo "> [!NOTE]"
+            echo "> Build · Commit \`${SHORT_SHA}\` · Branch \`${GITHUB_REF_NAME}\` · Java 21"
+            echo ""
             echo "## Test results"
+            echo ""
+            echo "![Tests](https://img.shields.io/badge/tests-${TEST_LABEL}-${TEST_COLOR}?style=flat-square)"
+            echo "![Build](https://img.shields.io/badge/build-${BUILD_LABEL}-${BUILD_COLOR}?style=flat-square)"
             echo ""
             echo "| Metric | Value |"
             echo "|---|---|"
-            echo "| Tests   | $T |"
+            echo "| Tests   | $T ✅ |"
             echo "| Passed  | $P |"
             echo "| Failed  | $F |"
             echo "| Errors  | $E |"
@@ -94,8 +117,24 @@ jobs:
             echo "No JaCoCo report found (tests may have failed before coverage was collected)." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          TOTAL=$(awk -F',' '
+            NR > 1 { im += $4; ic += $5 }
+            END {
+              it = im + ic
+              print (it > 0) ? int(100 * ic / it + 0.5) : 0
+            }
+          ' target/site/jacoco/jacoco.csv)
+          if [ "$TOTAL" -ge 75 ]; then COV_COLOR="success"
+          elif [ "$TOTAL" -ge 50 ]; then COV_COLOR="yellow"
+          else COV_COLOR="critical"
+          fi
           {
             echo "## Code coverage"
+            echo ""
+            echo "![Coverage](https://img.shields.io/badge/coverage-${TOTAL}%25-${COV_COLOR}?style=flat-square)"
+            echo ""
+            echo "<details>"
+            echo "<summary><b>Coverage breakdown by package</b> (click to expand)</summary>"
             echo ""
             echo "| Package | Instructions | Branches |"
             echo "|---|---|---|"
@@ -111,8 +150,19 @@ jobs:
                   it = pkg_im[pkg] + pkg_ic[pkg]
                   ip = (it > 0) ? int(100 * pkg_ic[pkg] / it + 0.5) : 0
                   bt = pkg_bm[pkg] + pkg_bc[pkg]
-                  bp = (bt > 0) ? (int(100 * pkg_bc[pkg] / bt + 0.5) "%") : "n/a"
-                  print "| " pkg " | " ip "% | " bp " |"
+                  if (ip >= 75) i_emoji = "🟢"
+                  else if (ip >= 50) i_emoji = "🟡"
+                  else i_emoji = "🔴"
+                  if (bt > 0) {
+                    bp = int(100 * pkg_bc[pkg] / bt + 0.5)
+                    if (bp >= 75) b_emoji = "🟢"
+                    else if (bp >= 50) b_emoji = "🟡"
+                    else b_emoji = "🔴"
+                    b_col = b_emoji " " bp "%"
+                  } else {
+                    b_col = "n/a"
+                  }
+                  print "| " pkg " | " i_emoji " " ip "% | " b_col " |"
                 }
               }
             ' target/site/jacoco/jacoco.csv | sort
@@ -121,9 +171,25 @@ jobs:
               END {
                 it = im + ic; ip = (it > 0) ? int(100 * ic / it + 0.5) : 0
                 bt = bm + bc; bp = (bt > 0) ? int(100 * bc / bt + 0.5) : 0
-                print "| **Total** | **" ip "%** | **" bp "%** |"
+                if (ip >= 75) i_emoji = "🟢"
+                else if (ip >= 50) i_emoji = "🟡"
+                else i_emoji = "🔴"
+                if (bt > 0) {
+                  if (bp >= 75) b_emoji = "🟢"
+                  else if (bp >= 50) b_emoji = "🟡"
+                  else b_emoji = "🔴"
+                  b_col = b_emoji " " bp "%"
+                } else {
+                  b_col = "n/a"
+                }
+                print "| **Total** | **" i_emoji " " ip "%** | **" b_col "** |"
               }
             ' target/site/jacoco/jacoco.csv
+            echo ""
+            echo "</details>"
+            echo ""
+            echo "> [!TIP]"
+            echo "> JaCoCo HTML report is available as a workflow artifact below."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload JaCoCo coverage report
