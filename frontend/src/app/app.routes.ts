@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
-import { isGlobalMembre, isSiteMembre, isLibreMembre, isAdminUser } from './core/guards/dashboard-redirect.guard';
+import { isMemberUser, isAdminUser } from './core/guards/dashboard-redirect.guard';
 
 import { Login } from './features/auth/login/login';
 import { Register } from './features/auth/register/register';
@@ -14,23 +14,9 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     canActivate: [authGuard],
-    canMatch: [isGlobalMembre],
+    canMatch: [isMemberUser],
     loadComponent: () =>
       import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
-  },
-  {
-    path: 'dashboard',
-    canActivate: [authGuard],
-    canMatch: [isSiteMembre],
-    loadComponent: () =>
-      import('./features/dashboard/dashboards/member-dashboard/member-dashboard').then(m => m.MemberDashboard),
-  },
-  {
-    path: 'dashboard',
-    canActivate: [authGuard],
-    canMatch: [isLibreMembre],
-    loadComponent: () =>
-      import('./features/dashboard/dashboards/libre-member-dashboard/libre-member-dashboard').then(m => m.LibreMemberDashboard),
   },
   {
     path: 'dashboard',
