@@ -436,7 +436,10 @@ public class MatchPadelService implements IMatchPadelService {
 
     @Override
     public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth) {
-        return matchPadelRepo.findAll(buildMatchSpec(siteId, statut, type, mine, auth), pageable)
+        // Enforce site scope for SITE members — cannot be bypassed by omitting the param
+        Integer effectiveSiteId = (auth != null && auth.getDetails() instanceof Integer authSiteId)
+                ? authSiteId : siteId;
+        return matchPadelRepo.findAll(buildMatchSpec(effectiveSiteId, statut, type, mine, auth), pageable)
                 .map(this::toDTO);
     }
 

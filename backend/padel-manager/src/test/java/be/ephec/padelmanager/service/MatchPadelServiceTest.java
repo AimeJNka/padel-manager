@@ -53,6 +53,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import be.ephec.padelmanager.integration.TestAuth;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class MatchPadelServiceTest {
@@ -972,6 +980,42 @@ class MatchPadelServiceTest {
 
         verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
         assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void listerMatchs_siteRoleEnforcesOwnSiteFilter() {
+        // SITE member with details=1 — frontend passes no siteId (null)
+        Authentication siteAuth = TestAuth.membreSite("S0002", 1);
+        when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        service.listerMatchs(null, null, null, null, PageRequest.of(0, 10), siteAuth);
+
+        // Capture the Specification passed to the repository
+        ArgumentCaptor<Specification<MatchPadel>> specCaptor =
+                ArgumentCaptor.forClass(Specification.class);
+        verify(matchPadelRepo).findAll(specCaptor.capture(), any(Pageable.class));
+
+        // Execute the captured spec with mocked JPA Criteria objects
+        // to verify the site=1 predicate is built despite siteId param being null
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        @SuppressWarnings("unchecked")
+        CriteriaQuery<MatchPadel> query = mock(CriteriaQuery.class);
+        @SuppressWarnings("unchecked")
+        Root<MatchPadel> root = mock(Root.class);
+        @SuppressWarnings("unchecked")
+        Path<Object> path = mock(Path.class);
+        Predicate predicate = mock(Predicate.class);
+
+        when(root.get(anyString())).thenReturn(path);
+        when(path.get(anyString())).thenReturn(path);
+        when(cb.equal(any(), eq(1))).thenReturn(predicate);
+        when(cb.and(any(Predicate[].class))).thenReturn(predicate);
+
+        specCaptor.getValue().toPredicate(root, query, cb);
+
+        // Site=1 predicate must have been built — even though siteId param was null
+        verify(cb).equal(path, 1);
     }
 
     // ════ helpers ═════════════════════════════════════════════════

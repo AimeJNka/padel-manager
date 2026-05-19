@@ -26,4 +26,11 @@ public final class TestAuth {
     public static Authentication membre(String matricule) {
         return new TestingAuthenticationToken(matricule, null, "ROLE_GLOBAL");
     }
+
+    public static Authentication membreSite(String matricule, int siteId) {
+        TestingAuthenticationToken auth =
+                new TestingAuthenticationToken(matricule, null, "ROLE_SITE");
+        auth.setDetails(siteId);
+        return auth;
+    }
 }
