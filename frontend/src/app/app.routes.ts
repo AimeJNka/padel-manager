@@ -57,8 +57,7 @@ export const routes: Routes = [
     path: 'matchs',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
-    data: { title: 'Mes matchs' },
+      import('./features/matchs/matchs-publiques/matchs-publiques').then(m => m.MatchsPubliques),
   },
   {
     path: 'historique',
