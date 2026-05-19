@@ -78,20 +78,25 @@
       </p>
     }
 
-    <!-- Debug summary (F-M3b) — confirms selectedSlot signal flows; removed in F-M3c -->
     @if (selectedSlot(); as slot) {
-      <div class="bg-padel-surface border border-ink-100 rounded-xl p-4 space-y-1">
-        <p class="text-sm font-medium text-padel-ink">
-          Créneau sélectionné — Terrain {{ slot.terrain.numero }}
-          à {{ slot.dateHeureDebut | date:'HH:mm' }}
-        </p>
-        <p class="text-xs text-ink-500">
-          Site : {{ slot.terrain.site.nom }} · idDispo : {{ slot.idDispo }}
-        </p>
-        <button type="button" disabled
-                class="mt-2 px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium
-                       opacity-40 cursor-not-allowed">
-          Créer le match (disponible en F-M3c)
+      <div class="bg-padel-surface border border-ink-100 rounded-xl p-4 space-y-3">
+        <div class="space-y-1">
+          <p class="text-sm font-medium text-padel-ink">
+            Créneau sélectionné — Terrain {{ slot.terrain.numero }}
+            à {{ slot.dateHeureDebut | date:'HH:mm' }}
+          </p>
+          <p class="text-xs text-ink-500">
+            {{ slot.dateHeureDebut | date:'dd/MM/yyyy' }} · {{ slot.terrain.site.nom }}
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="onCreerMatchClick()"
+          [disabled]="!canCreate() || isSubmitting()"
+          class="px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium
+                 hover:bg-padel-blue/90 disabled:opacity-40 disabled:cursor-not-allowed
+                 transition-opacity">
+          {{ isSubmitting() ? 'Création en cours…' : 'Créer le match' }}
         </button>
       </div>
     }

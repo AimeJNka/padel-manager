@@ -67,6 +67,13 @@ export const routes: Routes = [
       import('./features/matchs/creer-match/creer-match').then(m => m.CreerMatch),
   },
   {
+    path: 'matchs/:id/inviter',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['GLOBAL', 'SITE'], denyMessage: 'Action réservée aux membres globaux et de site', title: 'Inviter des joueurs' },
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+  },
+  {
     path: 'historique',
     canActivate: [authGuard],
     loadComponent: () =>

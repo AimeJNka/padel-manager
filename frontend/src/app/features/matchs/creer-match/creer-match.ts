@@ -2,15 +2,26 @@ import {
   ChangeDetectionStrategy, Component, computed, inject, signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { PenaliteService } from '../../../core/services/penalite.service';
 import { SiteService, Site } from '../../../core/services/site.service';
+import { MatchService } from '../../../core/services/match.service';
 import { Penalite } from '../../../core/models/penalite.model';
 import { DisponibiliteDTO } from '../../../core/models/match.model';
 import { PageShell } from '../../../shared/components/page-shell/page-shell';
 import { SlotPicker } from './slot-picker/slot-picker';
+import {
+  CreerMatchDialog,
+  CreerMatchDialogData,
+  CreerMatchDialogResult,
+  MatchType,
+} from '../../../shared/dialogs/creer-match-dialog/creer-match-dialog';
 
 @Component({
   selector: 'app-creer-match',
@@ -19,7 +30,11 @@ import { SlotPicker } from './slot-picker/slot-picker';
   templateUrl: './creer-match.html',
 })
 export class CreerMatch {
-  private readonly auth = inject(AuthService);
+  private readonly auth         = inject(AuthService);
+  private readonly dialog       = inject(MatDialog);
+  private readonly snackBar     = inject(MatSnackBar);
+  private readonly router       = inject(Router);
+  private readonly matchService = inject(MatchService);
 
   // ── External data ──────────────────────────────────────────────────────────
   protected readonly sites     = toSignal(inject(SiteService).getSites(),
@@ -88,6 +103,58 @@ export class CreerMatch {
 
   protected onSlotSelected(dispo: DisponibiliteDTO): void {
     this.selectedSlot.set(dispo);
+  }
+
+  // ── Submission ────────────────────────────────────────────────────────────
+  protected readonly isSubmitting = signal(false);
+
+  protected readonly canCreate = computed(() =>
+    this.selectedSlot() != null
+    && this.canSelectDate()
+    && this.penaliteActive() == null
+  );
+
+  protected onCreerMatchClick(): void {
+    const slot = this.selectedSlot();
+    if (!slot) return;
+
+    this.dialog
+      .open<CreerMatchDialog, CreerMatchDialogData, CreerMatchDialogResult>(
+        CreerMatchDialog,
+        { data: { slot, shareEstimate: 15 }, width: '480px' }
+      )
+      .afterClosed()
+      .subscribe(result => {
+        if (result?.type) this.submitMatch(slot.idDispo, result.type);
+      });
+  }
+
+  private submitMatch(dispoId: number, type: MatchType): void {
+    this.isSubmitting.set(true);
+    const obs = type === 'PRIVE'
+      ? this.matchService.creerPrive({ dispoId })
+      : this.matchService.creerPublic({ dispoId });
+
+    obs.subscribe({
+      next: (match) => {
+        this.isSubmitting.set(false);
+        if (type === 'PRIVE') {
+          const snackRef = this.snackBar.open('Match créé avec succès', 'Inviter', { duration: 6000 });
+          snackRef.onAction().subscribe(() => {
+            this.router.navigate(['/matchs', match.idMatch, 'inviter']);
+          });
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.snackBar.open('Match créé et visible dans Matchs publics', 'OK', { duration: 4000 });
+          this.router.navigate(['/matchs']);
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.isSubmitting.set(false);
+        const message = err.error?.message ?? 'Erreur lors de la création du match';
+        this.snackBar.open(message, 'OK', { duration: 5000 });
+      },
+    });
   }
 
   private toDateStr(d: Date): string {
