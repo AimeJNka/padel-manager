@@ -61,4 +61,8 @@ export class MatchService {
   annuler(idMatch: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${idMatch}`);
   }
+
+  annulerParticipation(idMatch: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${idMatch}/participation`);
+  }
 }

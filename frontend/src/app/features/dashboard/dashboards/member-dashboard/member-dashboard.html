@@ -38,7 +38,7 @@
       } @else {
         <div class="grid gap-3 sm:grid-cols-2">
           @for (m of upcomingMatches(); track m.idMatch) {
-            <app-match-card [match]="m" />
+            <app-match-card [match]="m" [linkTo]="'/matchs/' + m.idMatch" />
           }
         </div>
       }

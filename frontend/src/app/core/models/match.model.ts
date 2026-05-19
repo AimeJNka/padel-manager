@@ -1,6 +1,8 @@
 export type MatchType = 'PRIVE' | 'PUBLIC';
 export type MatchStatut = 'EN_ATTENTE' | 'CONFIRME' | 'ANNULE' | 'TERMINE';
 export type DispoStatut = 'LIBRE' | 'RESERVE';
+export type StatutParticipation = 'EN_ATTENTE' | 'CONFIRME' | 'ANNULEE';
+export type StatutPaiement = 'EN_ATTENTE' | 'PAYE' | 'ANNULE' | 'REMBOURSE';
 
 export interface SiteDTO {
   idSite: number;
@@ -50,6 +52,16 @@ export interface DisponibiliteDTO {
   statut: DispoStatut;
 }
 
+export interface ParticipationDTO {
+  idParticipation: number;
+  matricule: string;
+  prenom: string | null;
+  nom: string | null;
+  statutParticipation: StatutParticipation;
+  statutPaiement: StatutPaiement | null;
+  montantPaiement: number | null;
+}
+
 export interface MatchPadelDTO {
   idMatch: number;
   disponibilite: DisponibiliteDTO;
@@ -58,6 +70,7 @@ export interface MatchPadelDTO {
   statut: MatchStatut;
   montantTotal: number;
   dateCreation: string;
+  participations: ParticipationDTO[];
 }
 
 export interface CreerMatchRequest {

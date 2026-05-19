@@ -74,6 +74,13 @@ export const routes: Routes = [
       import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
   },
   {
+    path: 'matchs/:id',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/matchs/match-detail/match-detail').then(m => m.MatchDetail),
+    data: { title: 'Détails du match' },
+  },
+  {
     path: 'historique',
     canActivate: [authGuard],
     loadComponent: () =>

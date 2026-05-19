@@ -29,6 +29,12 @@ export class MatchsPubliques {
   protected readonly publicMatches  = signal<MatchPadelDTO[]>([]);
   protected readonly isLoading      = signal(false);
   protected readonly error          = signal<string | null>(null);
+  private   readonly myMatchIds     = signal<Set<number>>(new Set<number>());
+
+  protected readonly filteredPublicMatches = computed(() => {
+    const ids = this.myMatchIds();
+    return this.publicMatches().filter(m => !ids.has(m.idMatch));
+  });
 
   protected readonly isSiteMember    = computed(() => this.auth.role() === 'SITE');
   protected readonly currentSiteName = computed(() => {
@@ -40,6 +46,7 @@ export class MatchsPubliques {
 
   constructor() {
     this.fetchPublicMatches();
+    this.fetchMyMatchIds();
   }
 
   protected onSiteFilterChange(event: Event): void {
@@ -72,6 +79,7 @@ export class MatchsPubliques {
       this.matchService.sInscrire(match.idMatch).subscribe({
         next: () => {
           this.snackBar.open('Inscription réussie !', 'Fermer', { duration: 3000 });
+          this.myMatchIds.update(ids => new Set([...ids, match.idMatch]));
           this.fetchPublicMatches();
         },
         error: (err: HttpErrorResponse) => {
@@ -79,6 +87,12 @@ export class MatchsPubliques {
           this.snackBar.open(msg, 'Fermer', { duration: 4000 });
         },
       });
+    });
+  }
+
+  private fetchMyMatchIds(): void {
+    this.matchService.lister({ mine: true, size: 50 }).subscribe({
+      next: page => this.myMatchIds.set(new Set(page.content.map(m => m.idMatch))),
     });
   }
 

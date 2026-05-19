@@ -1,4 +1,7 @@
-<article class="bg-white rounded-xl border border-ink-100 p-4 shadow-xs hover:shadow-sm transition-shadow">
+<article
+  class="bg-white rounded-xl border border-ink-100 p-4 shadow-xs hover:shadow-sm transition-shadow"
+  [class.cursor-pointer]="linkTo() != null"
+  [routerLink]="linkTo()">
 
   <!-- Header: status + type -->
   <div class="flex items-center justify-between mb-3">
