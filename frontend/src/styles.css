@@ -173,3 +173,58 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   font-size: 13px;
   font-weight: 500;
 }
+
+/* ---------------------------------------------------------------------------
+   Slot picker — booking slot cards
+   --------------------------------------------------------------------------- */
+
+.slot-card {
+  padding: 8px 16px;
+  border: 1px solid var(--color-ink-100);
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-padel-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+
+.slot-card:hover:not(:disabled) {
+  border-color: var(--color-padel-blue);
+  background: color-mix(in srgb, var(--color-padel-blue) 6%, white);
+}
+
+.slot-card--selected {
+  border-color: var(--color-padel-blue);
+  background: color-mix(in srgb, var(--color-padel-blue) 12%, white);
+  color: var(--color-padel-blue);
+  font-weight: 600;
+}
+
+.slot-card:disabled {
+  background: var(--color-padel-surface);
+  border-color: var(--color-ink-100);
+  color: var(--color-ink-400);
+  cursor: not-allowed;
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------------------
+   Penalty banner
+   --------------------------------------------------------------------------- */
+
+.penalty-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-error) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, white);
+  color: var(--color-error);
+  font-size: 14px;
+  font-weight: 500;
+}
