@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -38,6 +38,10 @@ import { AuthService } from '../../../core/services/auth.service';
 export class PageShell {
   protected readonly auth = inject(AuthService);
   protected readonly matricule = this.auth.matricule;
+  protected readonly canCreateMatch = computed(() => {
+    const role = this.auth.role();
+    return role === 'GLOBAL' || role === 'SITE';
+  });
 
   logout(): void {
     this.auth.logout();

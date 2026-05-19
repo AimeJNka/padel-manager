@@ -24,11 +24,22 @@
 
       <a routerLink="/matchs"
          routerLinkActive="is-active"
+         [routerLinkActiveOptions]="{ exact: true }"
          class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                 text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
         <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">sports_tennis</mat-icon>
         Matchs publics
       </a>
+
+      @if (canCreateMatch()) {
+        <a routerLink="/matchs/creer"
+           routerLinkActive="is-active"
+           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+          <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">add_circle</mat-icon>
+          Créer un match
+        </a>
+      }
 
       <a routerLink="/mes-paiements"
          routerLinkActive="is-active"

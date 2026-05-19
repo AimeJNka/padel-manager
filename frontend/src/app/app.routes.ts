@@ -60,6 +60,13 @@ export const routes: Routes = [
       import('./features/matchs/matchs-publiques/matchs-publiques').then(m => m.MatchsPubliques),
   },
   {
+    path: 'matchs/creer',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['GLOBAL', 'SITE'], denyMessage: 'Action réservée aux membres globaux et de site' },
+    loadComponent: () =>
+      import('./features/matchs/creer-match/creer-match').then(m => m.CreerMatch),
+  },
+  {
     path: 'historique',
     canActivate: [authGuard],
     loadComponent: () =>
