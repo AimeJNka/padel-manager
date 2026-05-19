@@ -53,6 +53,21 @@ export const routes: Routes = [
       import('./features/penalites/admin-penalites/admin-penalites').then(m => m.AdminPenalites),
   },
 
+  {
+    path: 'matchs',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+    data: { title: 'Mes matchs' },
+  },
+  {
+    path: 'historique',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+    data: { title: 'Historique' },
+  },
+
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];

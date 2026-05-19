@@ -74,6 +74,9 @@ export class MemberDashboard {
 
   protected readonly greeting = computed(() => {
     const m = this.profil();
-    return m ? `${m.personne.prenom} ${m.personne.nom}` : (this.auth.matricule() ?? '');
+    if (m?.prenom && m?.nom) {
+      return `${m.prenom} ${m.nom}`;
+    }
+    return this.auth.matricule() ?? '';
   });
 }
