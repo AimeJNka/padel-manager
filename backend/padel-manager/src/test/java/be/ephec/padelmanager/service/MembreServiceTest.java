@@ -2,7 +2,9 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
+import be.ephec.padelmanager.dto.MembreSearchDTO;
 import be.ephec.padelmanager.dto.UpdateMembreRequest;
+import be.ephec.padelmanager.integration.TestAuth;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
@@ -268,5 +270,50 @@ class MembreServiceTest {
         assertThat(dto).isNotNull();
         assertThat(dto.getEmail()).isNull();
         verify(personneRepo, never()).save(any());
+    }
+
+    // ── search ───────────────────────────────────────────────────────────────
+
+    @Test
+    void search_emptyQuery_returnsEmpty() {
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+
+        assertThat(service.search("", auth)).isEmpty();
+        assertThat(service.search("a", auth)).isEmpty();
+        assertThat(service.search(null, auth)).isEmpty();
+
+        verify(membreRepo, never()).searchByPattern(any(), any());
+        verify(membreRepo, never()).searchByPatternAndSite(any(), any(), any());
+    }
+
+    @Test
+    void search_returnsLightweightDTOs_noSensitiveFields() {
+        Membre membre = buildMembre("G0001", "private@test.be", "Dupont", "Jean");
+        membre.setSoldeDu(BigDecimal.valueOf(50));
+        Site site = new Site();
+        site.setNom("Brussels");
+        membre.setSite(site);
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+        when(membreRepo.searchByPattern(any(), any())).thenReturn(List.of(membre));
+
+        List<MembreSearchDTO> results = service.search("jean", auth);
+
+        assertThat(results).hasSize(1);
+        MembreSearchDTO dto = results.get(0);
+        assertThat(dto.getMatricule()).isEqualTo("G0001");
+        assertThat(dto.getPrenom()).isEqualTo("Jean");
+        assertThat(dto.getNom()).isEqualTo("Dupont");
+        assertThat(dto.getSiteNom()).isEqualTo("Brussels");
+    }
+
+    @Test
+    void search_filtersBySiteForSiteRole() {
+        var auth = TestAuth.membreSite("S0002", 1);
+        when(membreRepo.searchByPatternAndSite(any(), any(), any())).thenReturn(List.of());
+
+        service.search("jean", auth);
+
+        verify(membreRepo).searchByPatternAndSite(any(), any(), any());
+        verify(membreRepo, never()).searchByPattern(any(), any());
     }
 }

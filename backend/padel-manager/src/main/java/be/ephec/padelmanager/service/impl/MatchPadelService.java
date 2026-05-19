@@ -3,6 +3,7 @@ package be.ephec.padelmanager.service.impl;
 import be.ephec.padelmanager.dto.DisponibiliteDTO;
 import be.ephec.padelmanager.dto.MatchPadelDTO;
 import be.ephec.padelmanager.dto.MembreDTO;
+import be.ephec.padelmanager.dto.ParticipationDTO;
 import be.ephec.padelmanager.dto.PersonneDTO;
 import be.ephec.padelmanager.dto.SiteDTO;
 import be.ephec.padelmanager.dto.TerrainDTO;
@@ -17,8 +18,10 @@ import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
+import be.ephec.padelmanager.model.Paiement;
 import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
 import be.ephec.padelmanager.repository.MembreRepo;
@@ -93,9 +96,6 @@ public class MatchPadelService implements IMatchPadelService {
         Membre joueur = membreRepo.findById(matriculeJoueur)
                 .orElseThrow(() -> new NotFoundException("Membre introuvable : " + matriculeJoueur));
 
-        if (penaliteRepo.existsByMembreMatriculeAndDateFinAfter(joueur.getMatricule(), LocalDateTime.now())) {
-            throw new ForbiddenException("Le joueur a une pénalité active");
-        }
         if (joueur.getSoldeDu() != null && joueur.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Le joueur a un solde dû");
         }
@@ -126,9 +126,6 @@ public class MatchPadelService implements IMatchPadelService {
         }
         Membre membre = resolveMembre(auth);
 
-        if (penaliteRepo.existsByMembreMatriculeAndDateFinAfter(membre.getMatricule(), LocalDateTime.now())) {
-            throw new ForbiddenException("Vous avez une pénalité active");
-        }
         if (membre.getSoldeDu() != null && membre.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Vous avez un solde dû");
         }
@@ -374,6 +371,35 @@ public class MatchPadelService implements IMatchPadelService {
         return dto;
     }
 
+    private MatchPadelDTO toDTOWithParticipations(MatchPadel m) {
+        MatchPadelDTO dto = toDTO(m);
+        List<Participation> participations =
+                participationRepo.findByMatchPadelIdMatch(m.getIdMatch());
+        dto.setParticipations(
+            participations.stream()
+                .filter(p -> !ParticipationStatus.ANNULEE.equals(p.getStatut()))
+                .map(this::toParticipationDTO)
+                .toList()
+        );
+        return dto;
+    }
+
+    private ParticipationDTO toParticipationDTO(Participation p) {
+        ParticipationDTO dto = new ParticipationDTO();
+        dto.setIdParticipation(p.getIdParticipation());
+        dto.setMatricule(p.getMembre().getMatricule());
+        Personne personne = p.getMembre().getPersonne();
+        dto.setPrenom(personne != null ? personne.getPrenom() : null);
+        dto.setNom(personne != null ? personne.getNom() : null);
+        dto.setStatutParticipation(p.getStatut());
+        Paiement pai = p.getPaiement();
+        if (pai != null) {
+            dto.setStatutPaiement(pai.getStatut());
+            dto.setMontantPaiement(pai.getMontant());
+        }
+        return dto;
+    }
+
     private DisponibiliteDTO toDisponibiliteDTO(Disponibilite d) {
         if (d == null) return null;
         DisponibiliteDTO dto = new DisponibiliteDTO();
@@ -445,7 +471,7 @@ public class MatchPadelService implements IMatchPadelService {
 
     @Override
     public MatchPadelDTO getMatch(Integer idMatch, Authentication auth) {
-        return toDTO(resolveMatch(idMatch));
+        return toDTOWithParticipations(resolveMatch(idMatch));
     }
 
     private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, Authentication auth) {

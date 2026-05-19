@@ -33,4 +33,7 @@ public class Participation {
 
     @Column(name = "date_inscription")
     private LocalDateTime dateInscription;
+
+    @OneToOne(mappedBy = "participation", fetch = FetchType.LAZY)
+    private Paiement paiement;
 }

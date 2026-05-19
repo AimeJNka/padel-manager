@@ -2,6 +2,7 @@ package be.ephec.padelmanager.controller;
 
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
+import be.ephec.padelmanager.dto.MembreSearchDTO;
 import be.ephec.padelmanager.dto.UpdateMembreRequest;
 import be.ephec.padelmanager.service.IMembreService;
 import jakarta.validation.Valid;
@@ -24,6 +25,14 @@ public class MembreController {
     public ResponseEntity<MembreProfilDTO> getProfil(Authentication authentication) {
         String matricule = (String) authentication.getPrincipal();
         return ResponseEntity.ok(membreService.getProfil(matricule));
+    }
+
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
+    public ResponseEntity<List<MembreSearchDTO>> search(
+            @RequestParam("q") String q,
+            Authentication auth) {
+        return ResponseEntity.ok(membreService.search(q, auth));
     }
 
     @GetMapping

@@ -3,6 +3,7 @@ package be.ephec.padelmanager.service.impl;
 import be.ephec.padelmanager.config.Role;
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
+import be.ephec.padelmanager.dto.MembreSearchDTO;
 import be.ephec.padelmanager.dto.PersonneDTO;
 import be.ephec.padelmanager.dto.SiteDTO;
 import be.ephec.padelmanager.dto.TypeMembreDTO;
@@ -15,6 +16,7 @@ import be.ephec.padelmanager.repository.MembreRepo;
 import be.ephec.padelmanager.repository.PersonneRepo;
 import be.ephec.padelmanager.service.IMembreService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,6 +85,37 @@ public class MembreService implements IMembreService {
         if (m.getSite() != null) {
             dto.setSiteNom(m.getSite().getNom());
         }
+        return dto;
+    }
+
+    @Override
+    public List<MembreSearchDTO> search(String q, Authentication auth) {
+        if (q == null || q.trim().length() < 2) return List.of();
+
+        boolean isSiteRole = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Role.SITE.authority()));
+        Integer siteIdFilter = null;
+        if (isSiteRole && auth.getDetails() instanceof Integer enforcedSiteId) {
+            siteIdFilter = enforcedSiteId;
+        }
+
+        String pattern = "%" + q.trim().toLowerCase() + "%";
+        PageRequest limit = PageRequest.of(0, 20);
+
+        List<Membre> results = siteIdFilter != null
+                ? membreRepo.searchByPatternAndSite(pattern, siteIdFilter, limit)
+                : membreRepo.searchByPattern(pattern, limit);
+
+        return results.stream().map(this::toSearchDTO).toList();
+    }
+
+    private MembreSearchDTO toSearchDTO(Membre m) {
+        MembreSearchDTO dto = new MembreSearchDTO();
+        dto.setMatricule(m.getMatricule());
+        Personne p = m.getPersonne();
+        dto.setPrenom(p != null ? p.getPrenom() : null);
+        dto.setNom(p != null ? p.getNom() : null);
+        dto.setSiteNom(m.getSite() != null ? m.getSite().getNom() : null);
         return dto;
     }
 
