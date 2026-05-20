@@ -17,13 +17,19 @@ public interface MembreRepo extends JpaRepository<Membre, String> {
     @Query("""
         SELECT m FROM Membre m
         LEFT JOIN m.personne p
-        WHERE LOWER(p.nom)       LIKE :pattern
-           OR LOWER(p.prenom)    LIKE :pattern
-           OR LOWER(m.matricule) LIKE :pattern
+        LEFT JOIN m.site s
+        JOIN m.typeMembre tm
+        WHERE (LOWER(p.nom)       LIKE :pattern
+            OR LOWER(p.prenom)    LIKE :pattern
+            OR LOWER(m.matricule) LIKE :pattern)
+          AND (:siteIdMatch IS NULL
+               OR tm.libelle IN ('Global', 'Libre')
+               OR s.idSite = :siteIdMatch)
         ORDER BY p.nom, p.prenom
         """)
     List<Membre> searchByPattern(
-            @Param("pattern") String pattern,
+            @Param("pattern")     String  pattern,
+            @Param("siteIdMatch") Integer siteIdMatch,
             Pageable pageable);
 
     @Query("""
@@ -34,10 +40,12 @@ public interface MembreRepo extends JpaRepository<Membre, String> {
             OR LOWER(p.prenom)    LIKE :pattern
             OR LOWER(m.matricule) LIKE :pattern)
           AND s.idSite = :siteId
+          AND (:siteIdMatch IS NULL OR s.idSite = :siteIdMatch)
         ORDER BY p.nom, p.prenom
         """)
     List<Membre> searchByPatternAndSite(
-            @Param("pattern") String pattern,
-            @Param("siteId")  Integer siteId,
+            @Param("pattern")     String  pattern,
+            @Param("siteId")      Integer siteId,
+            @Param("siteIdMatch") Integer siteIdMatch,
             Pageable pageable);
 }

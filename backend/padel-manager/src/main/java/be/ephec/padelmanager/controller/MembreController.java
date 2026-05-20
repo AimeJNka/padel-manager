@@ -31,8 +31,9 @@ public class MembreController {
     @PreAuthorize("hasAnyRole('GLOBAL', 'SITE')")
     public ResponseEntity<List<MembreSearchDTO>> search(
             @RequestParam("q") String q,
+            @RequestParam(value = "siteId", required = false) Integer siteId,
             Authentication auth) {
-        return ResponseEntity.ok(membreService.search(q, auth));
+        return ResponseEntity.ok(membreService.search(q, siteId, auth));
     }
 
     @GetMapping

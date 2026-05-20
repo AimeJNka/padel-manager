@@ -89,7 +89,7 @@ public class MembreService implements IMembreService {
     }
 
     @Override
-    public List<MembreSearchDTO> search(String q, Authentication auth) {
+    public List<MembreSearchDTO> search(String q, Integer siteIdMatch, Authentication auth) {
         if (q == null || q.trim().length() < 2) return List.of();
 
         boolean isSiteRole = auth.getAuthorities().stream()
@@ -103,8 +103,8 @@ public class MembreService implements IMembreService {
         PageRequest limit = PageRequest.of(0, 20);
 
         List<Membre> results = siteIdFilter != null
-                ? membreRepo.searchByPatternAndSite(pattern, siteIdFilter, limit)
-                : membreRepo.searchByPattern(pattern, limit);
+                ? membreRepo.searchByPatternAndSite(pattern, siteIdFilter, siteIdMatch, limit)
+                : membreRepo.searchByPattern(pattern, siteIdMatch, limit);
 
         return results.stream().map(this::toSearchDTO).toList();
     }

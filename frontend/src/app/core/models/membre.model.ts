@@ -9,3 +9,10 @@ export interface Membre {
   dateInscription: string;
   soldeDu: number;
 }
+
+export interface MembreSearchDTO {
+  matricule: string;
+  prenom:    string | null;
+  nom:       string | null;
+  siteNom:   string | null;
+}

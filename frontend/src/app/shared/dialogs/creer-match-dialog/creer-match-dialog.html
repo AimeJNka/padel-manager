@@ -24,6 +24,17 @@
     </mat-radio-group>
     <p class="text-xs text-ink-500 mt-2">{{ helperText() }}</p>
   </div>
+
+  @if (selectedType() === 'PRIVE') {
+    <div class="field mt-4">
+      <label class="field-lbl">Inviter des joueurs (optionnel)</label>
+      <app-member-picker
+        [maxSelection]="3"
+        [excludeMatricules]="excludedMatricules()"
+        [siteId]="data.slot.terrain.site.idSite"
+        [(selectedMembers)]="invites" />
+    </div>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

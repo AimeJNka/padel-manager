@@ -5,6 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 
 import { DisponibiliteDTO } from '../../../core/models/match.model';
+import { MembreSearchDTO } from '../../../core/models/membre.model';
+import { MemberPicker } from '../../components/member-picker/member-picker';
+import { AuthService } from '../../../core/services/auth.service';
 
 export interface CreerMatchDialogData {
   slot: DisponibiliteDTO;
@@ -15,23 +18,30 @@ export type MatchType = 'PRIVE' | 'PUBLIC';
 
 export interface CreerMatchDialogResult {
   type: MatchType;
+  invites?: MembreSearchDTO[];
 }
 
 @Component({
   selector: 'app-creer-match-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MatDialogModule, MatRadioModule, MatButtonModule, DatePipe],
+  imports: [MatDialogModule, MatRadioModule, MatButtonModule, DatePipe, MemberPicker],
   templateUrl: './creer-match-dialog.html',
 })
 export class CreerMatchDialog {
   protected readonly data      = inject<CreerMatchDialogData>(MAT_DIALOG_DATA);
   protected readonly dialogRef = inject(MatDialogRef<CreerMatchDialog, CreerMatchDialogResult>);
+  private   readonly auth      = inject(AuthService);
 
-  protected readonly selectedType = signal<MatchType>('PRIVE');
+  protected readonly selectedType        = signal<MatchType>('PRIVE');
+  protected readonly invites             = signal<MembreSearchDTO[]>([]);
+  protected readonly excludedMatricules  = computed(() => {
+    const m = this.auth.matricule();
+    return m ? [m] : [];
+  });
 
   protected readonly helperText = computed(() =>
     this.selectedType() === 'PRIVE'
-      ? 'Vous serez seul organisateur. Vous pourrez inviter des joueurs depuis le match.'
+      ? 'Vous serez seul organisateur. Invitez jusqu\'à 3 joueurs ci-dessous.'
       : "D'autres joueurs pourront s'inscrire via la page Matchs publics."
   );
 
@@ -40,7 +50,11 @@ export class CreerMatchDialog {
   }
 
   protected onConfirm(): void {
-    this.dialogRef.close({ type: this.selectedType() });
+    const result: CreerMatchDialogResult = { type: this.selectedType() };
+    if (this.selectedType() === 'PRIVE' && this.invites().length > 0) {
+      result.invites = this.invites();
+    }
+    this.dialogRef.close(result);
   }
 
   protected onCancel(): void {
