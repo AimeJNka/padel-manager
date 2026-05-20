@@ -1,0 +1,113 @@
+<app-page-shell>
+  <main class="p-6 max-w-3xl mx-auto space-y-6">
+
+    <!-- Back nav -->
+    <a [routerLink]="['/matchs', id()]"
+       class="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-padel-ink transition-colors">
+      &larr; Retour au match
+    </a>
+
+    <!-- Loading -->
+    @if (isLoading()) {
+      <p class="text-sm text-ink-500">Chargement&hellip;</p>
+    }
+
+    <!-- Error -->
+    @else if (error()) {
+      <div class="bg-error/10 border border-error/30 rounded-xl p-4 space-y-3">
+        <p class="text-sm text-error">{{ error() }}</p>
+        <button
+          type="button"
+          (click)="fetchMatch()"
+          class="text-sm font-medium text-padel-blue hover:underline">
+          Réessayer
+        </button>
+      </div>
+    }
+
+    <!-- Content -->
+    @else if (match(); as m) {
+
+      <h1 class="text-2xl font-semibold text-padel-ink">Inviter des joueurs</h1>
+
+      <!-- Access denied -->
+      @if (accessDeniedReason(); as reason) {
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+          <p class="text-sm text-amber-800">{{ reason }}</p>
+          <a
+            [routerLink]="['/matchs', id()]"
+            class="text-sm font-medium text-padel-blue hover:underline">
+            Retour au match
+          </a>
+        </div>
+      }
+
+      <!-- Invitation form -->
+      @else {
+
+        <!-- Match recap -->
+        <section class="bg-white rounded-xl border border-ink-100 p-5 shadow-xs space-y-3">
+          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wide">Match</h2>
+          <div class="space-y-1.5 text-sm">
+            <div class="flex justify-between">
+              <span class="text-ink-500">Date</span>
+              <span class="font-medium text-padel-ink">
+                {{ m.disponibilite.dateHeureDebut | date:'EEEE dd/MM/yyyy' : '' : 'fr' }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-ink-500">Horaire</span>
+              <span class="font-medium text-padel-ink tabular-nums">
+                {{ m.disponibilite.dateHeureDebut | date:'HH:mm' }}
+                &ndash;
+                {{ m.disponibilite.dateHeureFin | date:'HH:mm' }}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-ink-500">Terrain</span>
+              <span class="font-medium text-padel-ink">Terrain {{ m.disponibilite.terrain.numero }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-ink-500">Site</span>
+              <span class="font-medium text-padel-ink">{{ m.disponibilite.terrain.site.nom }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-ink-500">Places restantes</span>
+              <span class="font-medium text-padel-ink">{{ placesRestantes() }} / 4</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Member picker -->
+        <section class="bg-white rounded-xl border border-ink-100 p-5 shadow-xs space-y-4">
+          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wide">Joueurs à inviter</h2>
+          <app-member-picker
+            [maxSelection]="placesRestantes()"
+            [excludeMatricules]="excludeMatricules()"
+            [siteId]="siteId()"
+            [(selectedMembers)]="invites"
+          />
+        </section>
+
+        <!-- Submit row -->
+        <div class="flex items-center gap-4">
+          <button
+            type="button"
+            (click)="onSubmit()"
+            [disabled]="invites().length === 0 || isSubmitting()"
+            class="px-4 py-2 bg-padel-blue text-white rounded-lg text-sm font-medium hover:bg-padel-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isSubmitting() ? 'Envoi en cours…' : 'Envoyer les invitations' }}
+          </button>
+          <a
+            [routerLink]="['/matchs', id()]"
+            class="text-sm text-ink-500 hover:text-padel-ink transition-colors">
+            Annuler
+          </a>
+        </div>
+
+      }
+
+    }
+
+  </main>
+</app-page-shell>

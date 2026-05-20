@@ -71,7 +71,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { roles: ['GLOBAL', 'SITE'], denyMessage: 'Action réservée aux membres globaux et de site', title: 'Inviter des joueurs' },
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+      import('./features/matchs/inviter-joueurs/inviter-joueurs').then(m => m.InviterJoueurs),
   },
   {
     path: 'matchs/:id',
