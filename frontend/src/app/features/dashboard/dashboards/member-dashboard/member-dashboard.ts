@@ -48,7 +48,7 @@ export class MemberDashboard {
     const now = new Date();
     return this.allMatches()
       .filter(m =>
-        (m.statut === 'EN_ATTENTE' || m.statut === 'CONFIRME') &&
+        m.statut === 'EN_ATTENTE' &&
         new Date(m.disponibilite.dateHeureDebut) > now
       )
       .sort((a, b) =>

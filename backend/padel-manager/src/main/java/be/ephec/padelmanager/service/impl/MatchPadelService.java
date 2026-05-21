@@ -495,10 +495,7 @@ public class MatchPadelService implements IMatchPadelService {
                        cb.equal(pRoot.get("membre").get("matricule"), matricule),
                        cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
                    );
-                predicates.add(cb.or(
-                    cb.equal(root.get("organisateur").get("matricule"), matricule),
-                    root.get("idMatch").in(sub)
-                ));
+                predicates.add(root.get("idMatch").in(sub));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
