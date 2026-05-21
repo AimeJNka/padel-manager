@@ -93,6 +93,7 @@ export class MatchsPubliques {
   private fetchMyMatchIds(): void {
     this.matchService.lister({ mine: true, size: 50 }).subscribe({
       next: page => this.myMatchIds.set(new Set(page.content.map(m => m.idMatch))),
+      error: () => this.myMatchIds.set(new Set<number>()),
     });
   }
 
