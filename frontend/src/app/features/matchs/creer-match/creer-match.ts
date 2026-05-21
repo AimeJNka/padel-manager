@@ -63,27 +63,25 @@ export class CreerMatch {
   // ── Date ──────────────────────────────────────────────────────────────────
   protected readonly selectedDate = signal<string | null>(null);
 
-  protected readonly dateMin = computed(() => {
-    const today = new Date();
-    const todayStr = this.toDateStr(today);
-    const penalty = this.penaliteActive();
-    if (penalty) {
-      const [y, m, d] = penalty.dateFin.split('T')[0].split('-').map(Number);
-      const dayAfterFin = new Date(y, m - 1, d + 1); // local midnight, day after penalty end
-      const dayAfterStr = this.toDateStr(dayAfterFin);
-      return dayAfterStr > todayStr ? dayAfterStr : todayStr;
-    }
-    return todayStr;
-  });
+  protected readonly dateMin = computed(() => this.toDateStr(new Date()));
+
   protected readonly dateMax = computed(() => {
     const days = this.auth.role() === 'GLOBAL' ? 21 : 14;
     const d = new Date();
     d.setDate(d.getDate() + days);
     return this.toDateStr(d);
   });
-  protected readonly canSelectDate = computed(
-    () => this.dateMin() <= this.dateMax()
-  );
+
+  protected readonly penaltyAvailableFrom = computed(() => {
+    const pen = this.penaliteActive();
+    if (!pen) return null;
+    const [y, m, d] = pen.dateFin.split('T')[0].split('-').map(Number);
+    const available = new Date(y, m - 1, d + 1);
+    const dd = String(available.getDate()).padStart(2, '0');
+    const mm = String(available.getMonth() + 1).padStart(2, '0');
+    const yyyy = available.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  });
 
   // ── Slot selection ─────────────────────────────────────────────────────────
   protected readonly selectedSlot      = signal<DisponibiliteDTO | null>(null);
@@ -112,7 +110,6 @@ export class CreerMatch {
 
   protected readonly canCreate = computed(() =>
     this.selectedSlot() != null
-    && this.canSelectDate()
     && this.penaliteActive() == null
   );
 

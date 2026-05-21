@@ -6,99 +6,89 @@
       <p class="text-sm text-ink-500 mt-1">Réservez un créneau et créez un match privé ou public.</p>
     </header>
 
-    @if (penaliteActive(); as pen) {
-      <div class="penalty-banner">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        Pénalité active : {{ pen.motif }} — expire le
-        {{ pen.dateFin | date:'dd/MM/yyyy' }}. La création de match est bloquée.
+    @if (penaliteActive()) {
+      <div class="bg-error/10 border border-error/30 rounded-xl p-4 text-sm">
+        <span class="font-semibold text-error">Pénalité active :</span>
+        Création de match disponible à partir du {{ penaltyAvailableFrom() }}
       </div>
-    }
+    } @else {
 
-    <!-- Date + site pickers -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- Date + site pickers -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-      <div class="field">
-        <label for="match-date" class="field-lbl">Date du match</label>
-        <input id="match-date" type="date"
-               class="input"
-               [min]="dateMin()" [max]="dateMax()"
-               [disabled]="!canSelectDate()"
-               (change)="onDateChange($event)" />
-        @if (!canSelectDate()) {
-          <p class="text-xs text-error mt-1">
-            Aucune date sélectionnable durant votre pénalité.
-          </p>
-        }
-      </div>
-
-      @if (isSiteMember()) {
         <div class="field">
-          <label class="field-lbl">Site</label>
-          @if (currentSiteName(); as siteName) {
-            <span class="badge-site">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              {{ siteName }}
-            </span>
-          }
+          <label for="match-date" class="field-lbl">Date du match</label>
+          <input id="match-date" type="date"
+                 class="input"
+                 [min]="dateMin()" [max]="dateMax()"
+                 (change)="onDateChange($event)" />
         </div>
-      } @else {
-        <div class="field">
-          <label for="site-select" class="field-lbl">Site</label>
-          <select id="site-select"
-                  class="input input-select"
-                  (change)="onSiteFilterChange($event)">
-            <option value="">— Choisir un site</option>
-            @for (s of sites(); track s.idSite) {
-              <option [value]="s.idSite">{{ s.nom }}</option>
+
+        @if (isSiteMember()) {
+          <div class="field">
+            <label class="field-lbl">Site</label>
+            @if (currentSiteName(); as siteName) {
+              <span class="badge-site">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {{ siteName }}
+              </span>
             }
-          </select>
+          </div>
+        } @else {
+          <div class="field">
+            <label for="site-select" class="field-lbl">Site</label>
+            <select id="site-select"
+                    class="input input-select"
+                    (change)="onSiteFilterChange($event)">
+              <option value="">— Choisir un site</option>
+              @for (s of sites(); track s.idSite) {
+                <option [value]="s.idSite">{{ s.nom }}</option>
+              }
+            </select>
+          </div>
+        }
+
+      </section>
+
+      <!-- Slot picker -->
+      @if (canShowSlotPicker()) {
+        <app-slot-picker
+          [siteId]="selectedSiteId()"
+          [date]="selectedDate()"
+          (slotSelected)="onSlotSelected($event)" />
+      } @else {
+        <p class="text-sm text-ink-500">
+          Sélectionnez une date{{ isSiteMember() ? '' : ' et un site' }} pour voir les créneaux disponibles.
+        </p>
+      }
+
+      @if (selectedSlot(); as slot) {
+        <div class="bg-padel-surface border border-ink-100 rounded-xl p-4 space-y-3">
+          <div class="space-y-1">
+            <p class="text-sm font-medium text-padel-ink">
+              Créneau sélectionné — Terrain {{ slot.terrain.numero }}
+              à {{ slot.dateHeureDebut | date:'HH:mm' }}
+            </p>
+            <p class="text-xs text-ink-500">
+              {{ slot.dateHeureDebut | date:'dd/MM/yyyy' }} · {{ slot.terrain.site.nom }}
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="onCreerMatchClick()"
+            [disabled]="!canCreate() || isSubmitting()"
+            class="px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium
+                   hover:bg-padel-blue/90 disabled:opacity-40 disabled:cursor-not-allowed
+                   transition-opacity">
+            {{ isSubmitting() ? 'Création en cours…' : 'Créer le match' }}
+          </button>
         </div>
       }
 
-    </section>
-
-    <!-- Slot picker -->
-    @if (canShowSlotPicker()) {
-      <app-slot-picker
-        [siteId]="selectedSiteId()"
-        [date]="selectedDate()"
-        (slotSelected)="onSlotSelected($event)" />
-    } @else {
-      <p class="text-sm text-ink-500">
-        Sélectionnez une date{{ isSiteMember() ? '' : ' et un site' }} pour voir les créneaux disponibles.
-      </p>
-    }
-
-    @if (selectedSlot(); as slot) {
-      <div class="bg-padel-surface border border-ink-100 rounded-xl p-4 space-y-3">
-        <div class="space-y-1">
-          <p class="text-sm font-medium text-padel-ink">
-            Créneau sélectionné — Terrain {{ slot.terrain.numero }}
-            à {{ slot.dateHeureDebut | date:'HH:mm' }}
-          </p>
-          <p class="text-xs text-ink-500">
-            {{ slot.dateHeureDebut | date:'dd/MM/yyyy' }} · {{ slot.terrain.site.nom }}
-          </p>
-        </div>
-        <button
-          type="button"
-          (click)="onCreerMatchClick()"
-          [disabled]="!canCreate() || isSubmitting()"
-          class="px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium
-                 hover:bg-padel-blue/90 disabled:opacity-40 disabled:cursor-not-allowed
-                 transition-opacity">
-          {{ isSubmitting() ? 'Création en cours…' : 'Créer le match' }}
-        </button>
-      </div>
     }
 
   </main>

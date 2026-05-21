@@ -72,6 +72,12 @@ export class MemberDashboard {
     this.penalites().find(p => p.active) ?? null
   );
 
+  protected readonly penaliteMotifDisplay = computed(() => {
+    const pen = this.penaliteActive();
+    if (!pen) return '';
+    return pen.motif.replace(' — UC-03', '');
+  });
+
   protected readonly greeting = computed(() => {
     const m = this.profil();
     if (m?.prenom && m?.nom) {
