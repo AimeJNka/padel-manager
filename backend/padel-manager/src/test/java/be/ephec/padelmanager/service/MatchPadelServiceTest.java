@@ -198,7 +198,7 @@ class MatchPadelServiceTest {
 
         ArgumentCaptor<String> motifCaptor = ArgumentCaptor.forClass(String.class);
         verify(penaliteService).appliquerPenalite(any(), anyInt(), motifCaptor.capture());
-        assertThat(motifCaptor.getValue()).isEqualTo("Match privé #10 incomplet — UC-03");
+        assertThat(motifCaptor.getValue()).isEqualTo("Match privé #10 incomplet");
     }
 
     @Test

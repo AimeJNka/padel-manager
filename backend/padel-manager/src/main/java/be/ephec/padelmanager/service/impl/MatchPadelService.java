@@ -227,7 +227,7 @@ public class MatchPadelService implements IMatchPadelService {
                 matchPadelRepo.save(match);
                 penaliteService.appliquerPenalite(
                         match.getOrganisateur(), MatchPolicy.DUREE_PENALITE_JOURS,
-                        String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
+                        String.format("Match privé #%d incomplet", match.getIdMatch()));
                 count++;
             }
         }

@@ -79,7 +79,7 @@ class MatchSchedulerIntegrationTest {
         assertThat(penalites).hasSize(1);
         assertThat(penalites.get(0).getMotif())
                 .contains("Match privé #")
-                .contains("incomplet — UC-03");
+                .contains("incomplet");
         assertThat(penalites.get(0).getDateFin())
                 .isAfter(LocalDateTime.now().plusDays(6))
                 .isBefore(LocalDateTime.now().plusDays(8));
