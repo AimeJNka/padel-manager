@@ -149,7 +149,7 @@
       </section>
 
       <!-- Actions -->
-      @if (canInvite() || canCancelMatch() || canCancelMyParticipation()) {
+      @if (canInvite() || canCancelMatch() || canCancelMyParticipation() || (isOrganizer() && match()?.statut !== 'ANNULE' && cancelMatchDeadlinePassed())) {
         <section class="space-y-3">
           <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wide">Actions</h2>
           <div class="flex flex-wrap gap-3">
@@ -186,6 +186,14 @@
             }
 
           </div>
+
+          @if (isOrganizer() && match()?.statut !== 'ANNULE' && cancelMatchDeadlinePassed()) {
+            <div class="px-3 py-2 rounded-lg bg-ink-100 text-ink-500 text-sm">
+              Annulation impossible — délai dépassé
+              ({{ match()?.typeMatch === 'PUBLIC' ? '24h' : '48h' }} avant le match).
+            </div>
+          }
+
         </section>
       }
 

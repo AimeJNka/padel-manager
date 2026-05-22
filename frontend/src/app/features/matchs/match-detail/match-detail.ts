@@ -29,6 +29,9 @@ import { PageShell } from '../../../shared/components/page-shell/page-shell';
 })
 export class MatchDetail implements OnInit {
 
+  private static readonly DELAI_ANNULATION_PUBLIC_H = 24;
+  private static readonly DELAI_ANNULATION_PRIVE_H  = 48;
+
   readonly id = input.required({ transform: numberAttribute });
 
   private readonly matchService = inject(MatchService);
@@ -72,6 +75,15 @@ export class MatchDetail implements OnInit {
 
   readonly isLateCancellation = computed(() => this.hoursBeforeMatch() < 24);
 
+  readonly cancelMatchDeadlinePassed = computed(() => {
+    const m = this.match();
+    if (!m) return true;
+    const delai = m.typeMatch === 'PUBLIC'
+      ? MatchDetail.DELAI_ANNULATION_PUBLIC_H
+      : MatchDetail.DELAI_ANNULATION_PRIVE_H;
+    return this.hoursBeforeMatch() < delai;
+  });
+
   readonly canInvite = computed(() =>
     this.isOrganizer() &&
     this.match()?.typeMatch === 'PRIVE' &&
@@ -82,7 +94,7 @@ export class MatchDetail implements OnInit {
   readonly canCancelMatch = computed(() =>
     this.isOrganizer() &&
     this.match()?.statut !== 'ANNULE' &&
-    this.match()?.statut !== 'TERMINE'
+    !this.cancelMatchDeadlinePassed()
   );
 
   readonly canCancelMyParticipation = computed(() =>
