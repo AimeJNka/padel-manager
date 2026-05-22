@@ -1,5 +1,5 @@
 export type MatchType = 'PRIVE' | 'PUBLIC';
-export type MatchStatut = 'EN_ATTENTE' | 'CONFIRME' | 'ANNULE' | 'TERMINE';
+export type MatchStatut = 'EN_ATTENTE' | 'EFFECTUE' | 'ANNULE';
 export type DispoStatut = 'LIBRE' | 'RESERVE';
 export type StatutParticipation = 'EN_ATTENTE' | 'CONFIRME' | 'ANNULEE';
 export type StatutPaiement = 'EN_ATTENTE' | 'PAYE' | 'ANNULE' | 'REMBOURSE';

@@ -87,19 +87,19 @@ export class MatchDetail implements OnInit {
   readonly canInvite = computed(() =>
     this.isOrganizer() &&
     this.match()?.typeMatch === 'PRIVE' &&
-    this.match()?.statut !== 'ANNULE' &&
+    this.match()?.statut !== 'ANNULE' && this.match()?.statut !== 'EFFECTUE' &&
     this.activeParticipations().length < 4
   );
 
   readonly canCancelMatch = computed(() =>
     this.isOrganizer() &&
-    this.match()?.statut !== 'ANNULE' &&
+    this.match()?.statut !== 'ANNULE' && this.match()?.statut !== 'EFFECTUE' &&
     !this.cancelMatchDeadlinePassed()
   );
 
   readonly canCancelMyParticipation = computed(() =>
     this.isParticipantNotOrganizer() &&
-    this.match()?.statut !== 'ANNULE' &&
+    this.match()?.statut !== 'ANNULE' && this.match()?.statut !== 'EFFECTUE' &&
     this.hoursBeforeMatch() > 0
   );
 
@@ -125,7 +125,7 @@ export class MatchDetail implements OnInit {
     });
     const count = this.activeParticipations().length;
     const base = `Annuler définitivement le match du ${dateStr} ?`;
-    const warning = m.statut === 'CONFIRME'
+    const warning = count > 0
       ? `\n\nAttention : ce match a ${count} joueur${count > 1 ? 's' : ''} inscrit${count > 1 ? 's' : ''}. Leurs participations seront annulées et leurs paiements remboursés.`
       : '';
     this.dialog.open(ConfirmDialog, {
