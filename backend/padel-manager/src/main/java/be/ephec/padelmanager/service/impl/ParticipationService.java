@@ -70,8 +70,13 @@ public class ParticipationService implements IParticipationService {
     public void annulerParticipation(Integer idMatch, Authentication auth) {
         String matricule = auth.getName();
 
-        matchPadelRepo.findById(idMatch)
+        var match = matchPadelRepo.findById(idMatch)
                 .orElseThrow(() -> new NotFoundException("Match introuvable"));
+        if (match.getOrganisateur() != null
+                && match.getOrganisateur().getMatricule().equals(matricule)) {
+            throw new ForbiddenException(
+                    "En tant qu'organisateur, vous ne pouvez pas annuler votre participation seule — annulez le match entier.");
+        }
 
         Participation participation = participationRepo
                 .findByMatchPadelIdMatchAndMembreMatricule(idMatch, matricule)
