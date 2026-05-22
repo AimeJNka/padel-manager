@@ -131,6 +131,41 @@ class MatchSchedulerIntegrationTest {
     }
 
     @Test
+    void job4_marksFinishedMatchAsEffectue() {
+        // Match started 2h ago (fin = debut + 90min = now - 30min) — already past end time.
+        // Created directly as DEMARRE to simulate Job 3 having already run.
+        // V13 CHECK constraint accepts EFFECTUE — proves real DB enforcement.
+        Membre organizer = membreRepo.findById("G0001").orElseThrow();
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(
+                terrainRepo, disponibiliteRepo, 1, LocalDateTime.now().minusHours(2));
+        MatchPadel match = IntegrationTestFixtures.createMatch(
+                matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.DEMARRE);
+
+        scheduler.traiterMatchesHoraire();
+
+        MatchPadel result = matchPadelRepo.findById(match.getIdMatch()).orElseThrow();
+        assertThat(result.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+    }
+
+    @Test
+    void job4_enAttentePastFin_job3ThenJob4_becomesEffectue() {
+        // Match started 3h ago (fin = debut + 90min = now - 90min).
+        // In one scheduler tick: Job 3 sees EN_ATTENTE + past debut → DEMARRE;
+        // Job 4 then sees DEMARRE + past fin → EFFECTUE.
+        // Models a scheduler resuming after the match has fully ended.
+        Membre organizer = membreRepo.findById("G0001").orElseThrow();
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(
+                terrainRepo, disponibiliteRepo, 2, LocalDateTime.now().minusHours(3));
+        MatchPadel match = IntegrationTestFixtures.createMatch(
+                matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
+
+        scheduler.traiterMatchesHoraire();
+
+        MatchPadel result = matchPadelRepo.findById(match.getIdMatch()).orElseThrow();
+        assertThat(result.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+    }
+
+    @Test
     void fullCycle_ordering_job2BeforeJob1BeforeJob3_producesCorrectFinalState() {
         // PRIVE match starting in 30 min: inside both Job-1 and Job-2 windows, outside Job-3's
         // 2 CONFIRME + 1 EN_ATTENTE — Job 2 cancels the EN_ATTENTE, then Job 1 sees 2 < 4 → bascule

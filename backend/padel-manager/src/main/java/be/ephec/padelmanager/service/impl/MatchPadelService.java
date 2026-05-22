@@ -82,8 +82,8 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public void ajouterJoueur(Integer idMatch, String matriculeJoueur, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est annulé ou terminé");
         }
         if (match.getOrganisateur() == null
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
@@ -121,8 +121,8 @@ public class MatchPadelService implements IMatchPadelService {
         if (!MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException("Le match n'est pas public");
         }
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est annulé ou terminé");
         }
         Membre membre = resolveMembre(auth);
 
@@ -171,8 +171,8 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut annuler le match");
         }
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est déjà annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est déjà annulé ou terminé");
         }
 
         Disponibilite dispo = match.getDisponibilite();
@@ -282,6 +282,46 @@ public class MatchPadelService implements IMatchPadelService {
             count++;
         }
         log.info("[Job 3] {} match(es) traité(s), marqués DEMARRE", count);
+        return count;
+    }
+
+    /**
+     * Job 4 — Marque les matchs non annulés comme EFFECTUE une fois que le
+     * créneau est terminé (dateHeureFin <= now).
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs EN_ATTENTE ou DEMARRE sont interrogés ;
+     * après traitement ils passent à EFFECTUE et ne sont plus retraités.
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est marqué EFFECTUE ce tick-ci. Une
+     * isolation par-match (REQUIRES_NEW via bean helper) serait une
+     * amélioration mais sort du périmètre de Sprint B1.
+     * </p>
+     * <p>
+     * <b>Gap accepté — solde organisateur :</b> un match peut atteindre ce
+     * point en statut EN_ATTENTE si Job 3 a manqué son tick de démarrage
+     * (ex. redémarrage du scheduler entre dateHeureDebut et dateHeureFin).
+     * Dans ce cas le solde dû de l'organisateur pour les places vides
+     * n'a jamais été calculé et n'est PAS recalculé rétroactivement ici.
+     * Ce cas est rare et accepté.
+     * </p>
+     *
+     * @return le nombre de matchs effectivement marqués EFFECTUE
+     */
+    @Override
+    public int marquerMatchesEffectues() {
+        List<String> statuts = List.of(MatchStatus.EN_ATTENTE, MatchStatus.DEMARRE);
+        List<MatchPadel> expires = matchPadelRepo.findExpiredMatchesByStatuts(statuts, LocalDateTime.now());
+        log.info("[Job 4] {} match(es) éligible(s) pour marquage EFFECTUE", expires.size());
+        int count = 0;
+        for (MatchPadel match : expires) {
+            match.setStatut(MatchStatus.EFFECTUE);
+            // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+            matchPadelRepo.save(match);
+            count++;
+        }
+        log.info("[Job 4] {} match(es) marqué(s) EFFECTUE", count);
         return count;
     }
 

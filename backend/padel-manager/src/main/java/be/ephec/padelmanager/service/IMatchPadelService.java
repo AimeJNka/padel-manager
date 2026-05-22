@@ -38,6 +38,18 @@ public interface IMatchPadelService {
      * @return le nombre de matchs effectivement traités (transitionnés vers DEMARRE)
      */
     int traiterSoldeMatchesDemarres();
+
+    /**
+     * Job 4 — Marque comme EFFECTUE tous les matchs non annulés dont le créneau
+     * est terminé (dateHeureFin <= now). Interroge les statuts EN_ATTENTE et DEMARRE
+     * pour gérer le cas rare où Job 3 a manqué son tick de démarrage.
+     * Gap accepté : aucune dette de solde n'est recalculée rétroactivement pour
+     * les matchs EN_ATTENTE rattrapés ici.
+     *
+     * @return le nombre de matchs effectivement marqués EFFECTUE
+     */
+    int marquerMatchesEffectues();
+
     Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth);
     MatchPadelDTO getMatch(Integer idMatch, Authentication auth);
 }

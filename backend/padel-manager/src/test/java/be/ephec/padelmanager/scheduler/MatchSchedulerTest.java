@@ -29,6 +29,7 @@ class MatchSchedulerTest {
         order.verify(participationService).libererPlacesNonPayees();
         order.verify(matchPadelService).basculerMatchesIncomplets();
         order.verify(matchPadelService).traiterSoldeMatchesDemarres();
+        order.verify(matchPadelService).marquerMatchesEffectues();
     }
 
     @Test
@@ -54,5 +55,21 @@ class MatchSchedulerTest {
         scheduler.traiterMatchesHoraire();
 
         verify(matchPadelService).traiterSoldeMatchesDemarres();
+    }
+
+    @Test
+    void traiterMatchesHoraire_whenJob3Throws_job4StillRuns() {
+        doThrow(new RuntimeException("TX failure")).when(matchPadelService).traiterSoldeMatchesDemarres();
+
+        scheduler.traiterMatchesHoraire();
+
+        verify(matchPadelService).marquerMatchesEffectues();
+    }
+
+    @Test
+    void traiterMatchesHoraire_whenJob4Throws_doesNotPropagate() {
+        doThrow(new RuntimeException("DB error")).when(matchPadelService).marquerMatchesEffectues();
+
+        assertThatNoException().isThrownBy(() -> scheduler.traiterMatchesHoraire());
     }
 }

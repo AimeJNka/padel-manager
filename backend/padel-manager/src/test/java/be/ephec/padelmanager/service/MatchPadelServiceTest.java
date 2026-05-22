@@ -217,6 +217,86 @@ class MatchPadelServiceTest {
         verify(matchPadelRepo, never()).save(any());
     }
 
+    // ── marquerMatchesEffectues ──────────────────
+
+    @Test
+    void marquerMatchesEffectues_demarrePastFin_becomesEffectue() {
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusMinutes(30));
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.DEMARRE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo).save(match);
+    }
+
+    @Test
+    void marquerMatchesEffectues_enAttentePastFin_becomesEffectue_safetyNet() {
+        // Covers the accepted gap: Job 3 missed its tick, match is still EN_ATTENTE at end time
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusMinutes(30));
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo).save(match);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void marquerMatchesEffectues_annuleExcluded_queryReceivesCorrectStatuts() {
+        // Verifies the service passes EN_ATTENTE+DEMARRE — never ANNULE — to the repo
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        service.marquerMatchesEffectues();
+
+        ArgumentCaptor<List<String>> statutsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(matchPadelRepo).findExpiredMatchesByStatuts(statutsCaptor.capture(), any());
+        assertThat(statutsCaptor.getValue())
+                .containsExactlyInAnyOrder(MatchStatus.EN_ATTENTE, MatchStatus.DEMARRE)
+                .doesNotContain(MatchStatus.ANNULE);
+        verify(matchPadelRepo, never()).save(any(MatchPadel.class));
+    }
+
+    @Test
+    void marquerMatchesEffectues_noExpiredMatches_returnsZeroAndNoSave() {
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isZero();
+        verify(matchPadelRepo, never()).save(any(MatchPadel.class));
+    }
+
+    @Test
+    void marquerMatchesEffectues_multipleMatches_returnsCorrectCount() {
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusHours(2));
+        MatchPadel match1 = buildMatch(1, MatchType.PRIVE,  MatchStatus.DEMARRE,    null, dispo);
+        MatchPadel match2 = buildMatch(2, MatchType.PUBLIC, MatchStatus.DEMARRE,    null, dispo);
+        MatchPadel match3 = buildMatch(3, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match1, match2, match3));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(3);
+        assertThat(match1.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        assertThat(match2.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        assertThat(match3.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo, times(3)).save(any(MatchPadel.class));
+    }
+
     // ── traiterSoldeMatchesDemarres ──────────────────
 
     @Test

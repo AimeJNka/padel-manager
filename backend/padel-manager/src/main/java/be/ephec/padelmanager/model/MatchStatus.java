@@ -10,6 +10,7 @@ public final class MatchStatus {
     public static final String EN_ATTENTE = "EN_ATTENTE";
     public static final String DEMARRE    = "DEMARRE";
     public static final String ANNULE     = "ANNULE";
+    public static final String EFFECTUE   = "EFFECTUE";
 
     private MatchStatus() {}
 }
