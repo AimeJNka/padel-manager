@@ -1069,7 +1069,7 @@ class MatchPadelServiceTest {
         when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(Page.empty());
 
-        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, null,
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, null, false,
                 PageRequest.of(0, 10), null);
 
         verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
@@ -1083,7 +1083,7 @@ class MatchPadelServiceTest {
         when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(match)));
 
-        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, true,
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, true, false,
                 PageRequest.of(0, 10), authAs(ORGANISATEUR));
 
         verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
@@ -1097,7 +1097,7 @@ class MatchPadelServiceTest {
         when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(Page.empty());
 
-        service.listerMatchs(null, null, null, null, PageRequest.of(0, 10), siteAuth);
+        service.listerMatchs(null, null, null, null, false, PageRequest.of(0, 10), siteAuth);
 
         // Capture the Specification passed to the repository
         ArgumentCaptor<Specification<MatchPadel>> specCaptor =

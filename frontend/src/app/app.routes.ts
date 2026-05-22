@@ -84,7 +84,7 @@ export const routes: Routes = [
     path: 'historique',
     canActivate: [authGuard],
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+      import('./features/historique/historique').then(m => m.Historique),
     data: { title: 'Historique' },
   },
 

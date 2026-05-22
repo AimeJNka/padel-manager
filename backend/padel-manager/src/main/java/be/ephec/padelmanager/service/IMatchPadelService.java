@@ -50,6 +50,6 @@ public interface IMatchPadelService {
      */
     int marquerMatchesEffectues();
 
-    Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth);
+    Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, boolean includeAnnulee, Pageable pageable, Authentication auth);
     MatchPadelDTO getMatch(Integer idMatch, Authentication auth);
 }

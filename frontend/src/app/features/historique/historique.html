@@ -1,0 +1,20 @@
+<app-page-shell>
+  <div class="p-6 max-w-5xl mx-auto space-y-6">
+
+    <div>
+      <h1 class="text-2xl font-semibold text-padel-ink">Historique</h1>
+      <p class="text-sm text-ink-400 mt-1">Vos matches terminés et annulés.</p>
+    </div>
+
+    @if (pastMatches().length === 0) {
+      <p class="text-sm text-ink-500">Aucun match dans votre historique pour le moment.</p>
+    } @else {
+      <div class="grid gap-3 sm:grid-cols-2">
+        @for (m of pastMatches(); track m.idMatch) {
+          <app-match-card [match]="m" [linkTo]="'/matchs/' + m.idMatch" />
+        }
+      </div>
+    }
+
+  </div>
+</app-page-shell>

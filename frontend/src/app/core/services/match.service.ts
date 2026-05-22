@@ -10,6 +10,7 @@ export interface MatchQueryParams {
   statut?: string | null;
   type?: string | null;
   mine?: boolean | null;
+  includeAnnulee?: boolean | null;
   page?: number | null;
   size?: number | null;
 }
@@ -27,6 +28,7 @@ export class MatchService {
       ['statut', params.statut],
       ['type', params.type],
       ['mine', params.mine],
+      ['includeAnnulee', params.includeAnnulee],
       ['page', params.page],
       ['size', params.size],
     ];

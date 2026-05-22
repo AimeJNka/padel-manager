@@ -501,11 +501,11 @@ public class MatchPadelService implements IMatchPadelService {
     }
 
     @Override
-    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth) {
+    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, boolean includeAnnulee, Pageable pageable, Authentication auth) {
         // Enforce site scope for SITE members — cannot be bypassed by omitting the param
         Integer effectiveSiteId = (auth != null && auth.getDetails() instanceof Integer authSiteId)
                 ? authSiteId : siteId;
-        return matchPadelRepo.findAll(buildMatchSpec(effectiveSiteId, statut, type, mine, auth), pageable)
+        return matchPadelRepo.findAll(buildMatchSpec(effectiveSiteId, statut, type, mine, includeAnnulee, auth), pageable)
                 .map(this::toDTO);
     }
 
@@ -514,7 +514,7 @@ public class MatchPadelService implements IMatchPadelService {
         return toDTOWithParticipations(resolveMatch(idMatch));
     }
 
-    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, Authentication auth) {
+    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, boolean includeAnnulee, Authentication auth) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (siteId != null) {
@@ -530,11 +530,16 @@ public class MatchPadelService implements IMatchPadelService {
                 String matricule = auth.getName();
                 Subquery<Integer> sub = query.subquery(Integer.class);
                 Root<Participation> pRoot = sub.from(Participation.class);
-                sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
-                   .where(
-                       cb.equal(pRoot.get("membre").get("matricule"), matricule),
-                       cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
-                   );
+                if (includeAnnulee) {
+                    sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                       .where(cb.equal(pRoot.get("membre").get("matricule"), matricule));
+                } else {
+                    sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                       .where(
+                           cb.equal(pRoot.get("membre").get("matricule"), matricule),
+                           cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
+                       );
+                }
                 predicates.add(root.get("idMatch").in(sub));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
