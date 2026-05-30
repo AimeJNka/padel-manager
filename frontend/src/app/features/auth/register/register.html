@@ -104,8 +104,15 @@
         }
 
         @if (successMessage()) {
-          <div class="bg-success/10 border border-success/30 rounded-lg p-3" role="status">
-            <p class="text-success text-sm">{{ successMessage() }}</p>
+          <div class="bg-success/10 border border-success/30 rounded-lg p-3 space-y-1" role="status">
+            <p class="text-success text-sm font-medium">{{ successMessage() }}</p>
+            @if (registeredMatricule()) {
+              <p class="text-success text-sm">
+                Votre matricule :
+                <span class="font-mono font-semibold">{{ registeredMatricule() }}</span>
+              </p>
+              <p class="text-xs text-ink-500">Notez-le, il vous servira à vous reconnecter.</p>
+            }
           </div>
         }
 

@@ -5,6 +5,9 @@ export interface LoginResponse {
   role: string;
 }
 
+// Backend returns the same AuthResponseDTO for both /api/auth/login and /api/auth/register
+export type RegisterResponse = LoginResponse;
+
 export interface AdminLoginResponse {
   accessToken: string;
   idAdmin: number;

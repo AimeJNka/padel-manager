@@ -46,6 +46,7 @@ export class Register implements OnInit {
   readonly successMessage = signal('');
   readonly isLoading = signal(false);
   readonly showSiteField = signal(false);
+  readonly registeredMatricule = signal<string | null>(null);
 
   ngOnInit(): void {
     this.http.get<TypeMembre[]>('/api/types-membres').subscribe({
@@ -94,11 +95,12 @@ export class Register implements OnInit {
       idType: v.idType ?? 0,
       idSite: v.idSite ?? undefined,
     }).subscribe({
-      next: () => {
+      next: (response) => {
         this.isLoading.set(false);
-        this.successMessage.set('Inscription réussie ! Redirection vers la connexion...');
+        this.registeredMatricule.set(response.matricule);
+        this.successMessage.set('Inscription réussie !');
         this.errorMessage.set('');
-        setTimeout(() => this.router.navigate(['/login']), 1500);
+        setTimeout(() => this.router.navigate(['/dashboard']), 2500);
       },
       error: () => {
         this.isLoading.set(false);
