@@ -5,10 +5,12 @@ import { roleGuard } from './core/guards/role.guard';
 import { isMemberUser, isAdminUser } from './core/guards/dashboard-redirect.guard';
 
 import { Login } from './features/auth/login/login';
+import { AdminLogin } from './features/auth/admin-login/admin-login';
 import { Register } from './features/auth/register/register';
 
 export const routes: Routes = [
   { path: 'login', component: Login },
+  { path: 'login/admin', component: AdminLogin },
   { path: 'register', component: Register },
 
   {

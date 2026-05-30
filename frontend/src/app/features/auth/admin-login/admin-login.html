@@ -11,17 +11,22 @@
       <img src="/image/flavi.jpeg" alt="PadelManager"
            class="h-14 w-14 mb-8 rounded-lg" />
 
-      <h1 class="text-2xl font-semibold text-padel-ink mb-1 tracking-tight">Connexion</h1>
-      <p class="text-sm text-ink-400 mb-6">Connectez-vous à votre espace membre</p>
+      <h1 class="text-2xl font-semibold text-padel-ink mb-1 tracking-tight">
+        Connexion administrateur
+      </h1>
+      <p class="text-sm text-ink-400 mb-6">Espace administrateur</p>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
 
         <div class="field">
-          <label class="field-lbl" for="matricule">Matricule</label>
-          <input id="matricule" type="text" class="input"
-                 formControlName="matricule" autocomplete="username" />
-          @if (form.controls.matricule.touched && form.controls.matricule.hasError('required')) {
-            <p class="text-error text-xs mt-1">Le matricule est requis.</p>
+          <label class="field-lbl" for="email">Email</label>
+          <input id="email" type="email" class="input"
+                 formControlName="email" autocomplete="username" />
+          @if (form.controls.email.touched && form.controls.email.hasError('required')) {
+            <p class="text-error text-xs mt-1">L'email est requis.</p>
+          }
+          @if (form.controls.email.touched && form.controls.email.hasError('email')) {
+            <p class="text-error text-xs mt-1">Format d'email invalide.</p>
           }
         </div>
 
@@ -41,25 +46,18 @@
         }
 
         <button type="submit" [disabled]="isLoading()"
-                class="w-full bg-padel-blue text-white font-medium py-2.5 rounded-lg
-                       hover:bg-padel-blue/90 disabled:opacity-50 disabled:cursor-not-allowed
+                class="w-full bg-padel-ink text-white font-medium py-2.5 rounded-lg
+                       hover:bg-padel-ink/90 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors">
           {{ isLoading() ? 'Connexion...' : 'Se connecter' }}
         </button>
       </form>
 
-      <div class="mt-6 pt-6 border-t border-ink-100 space-y-2">
-        <p class="text-sm text-ink-500">
-          Pas encore de compte ?
-          <a routerLink="/register" class="text-padel-blue hover:underline font-medium">
-            Créer un compte
-          </a>
-        </p>
-        <p class="text-xs text-ink-400">
-          <a routerLink="/login/admin" class="hover:text-ink-500 hover:underline">
-            Espace administrateur
-          </a>
-        </p>
+      <div class="mt-6 pt-6 border-t border-ink-100">
+        <a routerLink="/login"
+           class="text-xs text-ink-400 hover:text-ink-500 hover:underline">
+          ← Espace membre
+        </a>
       </div>
 
     </div>

@@ -6,18 +6,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-admin-login',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './login.html',
+  templateUrl: './admin-login.html',
 })
-export class Login {
+export class AdminLogin {
 
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
   readonly form = this.fb.nonNullable.group({
-    matricule: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]],
     motDePasse: ['', Validators.required],
   });
 
@@ -31,9 +31,9 @@ export class Login {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    const { matricule, motDePasse } = this.form.getRawValue();
+    const { email, motDePasse } = this.form.getRawValue();
 
-    this.authService.login(matricule, motDePasse).subscribe({
+    this.authService.adminLogin(email, motDePasse).subscribe({
       next: () => {
         this.isLoading.set(false);
         this.router.navigate(['/dashboard']);
