@@ -50,23 +50,6 @@ html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 /* ---------------------------------------------------------------------------
-   Auth pages (login, register) — centered card layout
-   --------------------------------------------------------------------------- */
-
-.auth-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 1rem;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-}
-
-/* ---------------------------------------------------------------------------
    Form utilities
    --------------------------------------------------------------------------- */
 
@@ -87,19 +70,6 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-
-/* Error and success message styles */
-.error-text {
-  color: var(--mat-sys-error, #b00020);
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
-}
-
-.success-text {
-  color: #2e7d32;
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
 }
 
 /* ---------------------------------------------------------------------------
