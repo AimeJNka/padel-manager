@@ -90,6 +90,11 @@ export const routes: Routes = [
     data: { title: 'Historique' },
   },
 
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
-  { path: '**', redirectTo: 'login' },
+  {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () =>
+      import('./features/landing/landing').then(m => m.Landing),
+  },
+  { path: '**', redirectTo: '' },
 ];
