@@ -54,6 +54,27 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/penalites/admin-penalites/admin-penalites').then(m => m.AdminPenalites),
   },
+  {
+    path: 'admin/membres',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Membres' },
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+  },
+  {
+    path: 'admin/creneaux',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Créneaux' },
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+  },
+  {
+    path: 'admin/horaires',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Horaires & Fermetures' },
+    loadComponent: () =>
+      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+  },
 
   {
     path: 'matchs',
