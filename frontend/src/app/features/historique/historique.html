@@ -1,10 +1,10 @@
 <app-page-shell>
-  <div class="p-6 max-w-5xl mx-auto space-y-6">
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
 
-    <div>
+    <header>
       <h1 class="text-2xl font-semibold text-padel-ink">Historique</h1>
       <p class="text-sm text-ink-400 mt-1">Vos matches terminés et annulés.</p>
-    </div>
+    </header>
 
     @if (pastMatches().length === 0) {
       <p class="text-sm text-ink-500">Aucun match dans votre historique pour le moment.</p>
@@ -16,5 +16,5 @@
       </div>
     }
 
-  </div>
+  </main>
 </app-page-shell>

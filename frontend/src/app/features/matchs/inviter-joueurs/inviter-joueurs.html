@@ -32,8 +32,8 @@
 
       <!-- Access denied -->
       @if (accessDeniedReason(); as reason) {
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
-          <p class="text-sm text-amber-800">{{ reason }}</p>
+        <div class="bg-warning/10 border border-warning/30 rounded-xl p-4 space-y-3" role="alert">
+          <p class="text-sm text-warning">{{ reason }}</p>
           <a
             [routerLink]="['/matchs', id()]"
             class="text-sm font-medium text-padel-blue hover:underline">
@@ -46,8 +46,8 @@
       @else {
 
         <!-- Match recap -->
-        <section class="bg-white rounded-xl border border-ink-100 p-5 shadow-xs space-y-3">
-          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wide">Match</h2>
+        <section class="bg-white rounded-xl border border-ink-100 p-5 space-y-3">
+          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wider">Match</h2>
           <div class="space-y-1.5 text-sm">
             <div class="flex justify-between">
               <span class="text-ink-500">Date</span>
@@ -79,8 +79,8 @@
         </section>
 
         <!-- Member picker -->
-        <section class="bg-white rounded-xl border border-ink-100 p-5 shadow-xs space-y-4">
-          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wide">Joueurs à inviter</h2>
+        <section class="bg-white rounded-xl border border-ink-100 p-5 space-y-4">
+          <h2 class="text-sm font-semibold text-padel-ink uppercase tracking-wider">Joueurs à inviter</h2>
           <app-member-picker
             [maxSelection]="placesRestantes()"
             [excludeMatricules]="excludeMatricules()"

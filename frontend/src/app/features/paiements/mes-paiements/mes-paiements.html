@@ -1,7 +1,10 @@
 <app-page-shell>
   <main class="p-6 max-w-5xl mx-auto space-y-6">
 
-    <h1 class="text-2xl font-semibold text-padel-ink">Mes paiements</h1>
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">Mes paiements</h1>
+      <p class="text-sm text-ink-400 mt-1">Vos paiements et remboursements.</p>
+    </header>
 
     @if (isLoading()) {
       <p class="text-sm text-ink-500">Chargement&hellip;</p>
@@ -14,29 +17,17 @@
     }
 
     @else {
-      <div class="bg-white rounded-xl border border-ink-100 shadow-xs overflow-x-auto">
+      <div class="bg-white rounded-xl border border-ink-100 overflow-x-auto">
         <table class="w-full text-sm">
 
-          <thead>
-            <tr class="border-b border-ink-100">
-              <th class="px-5 py-3 text-left text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Match
-              </th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Montant
-              </th>
-              <th class="px-5 py-3 text-right text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Solde inclus
-              </th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Payé le
-              </th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Statut
-              </th>
-              <th class="px-5 py-3 text-left text-xs font-semibold text-ink-500 uppercase tracking-wide">
-                Actions
-              </th>
+          <thead class="border-b border-ink-100 bg-padel-surface text-ink-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left font-medium py-3 px-4">Match</th>
+              <th class="text-right font-medium py-3 px-4">Montant</th>
+              <th class="text-right font-medium py-3 px-4">Solde inclus</th>
+              <th class="text-left font-medium py-3 px-4">Payé le</th>
+              <th class="text-left font-medium py-3 px-4">Statut</th>
+              <th class="text-left font-medium py-3 px-4">Actions</th>
             </tr>
           </thead>
 
@@ -45,7 +36,7 @@
               <tr>
 
                 <!-- Match: #id link + date -->
-                <td class="px-5 py-3">
+                <td class="py-3 px-4">
                   <a [routerLink]="['/matchs', p.idMatch]"
                      class="font-mono text-xs text-padel-blue hover:underline">
                     #{{ p.idMatch }}
@@ -56,12 +47,12 @@
                 </td>
 
                 <!-- Montant -->
-                <td class="px-5 py-3 text-right font-medium text-padel-ink tabular-nums">
+                <td class="py-3 px-4 text-right font-medium text-padel-ink tabular-nums">
                   {{ p.montant | currency:'EUR':'symbol':'1.2-2' }}
                 </td>
 
                 <!-- Solde inclus -->
-                <td class="px-5 py-3 text-right tabular-nums">
+                <td class="py-3 px-4 text-right tabular-nums">
                   @if (p.soldeInclus > 0) {
                     <span class="font-medium text-padel-ink">
                       {{ p.soldeInclus | currency:'EUR':'symbol':'1.2-2' }}
@@ -72,17 +63,17 @@
                 </td>
 
                 <!-- Date paiement -->
-                <td class="px-5 py-3 text-ink-500 tabular-nums">
+                <td class="py-3 px-4 text-ink-500 tabular-nums">
                   {{ p.datePaiement ? (p.datePaiement | date:'dd/MM/yyyy HH:mm') : '—' }}
                 </td>
 
                 <!-- Statut -->
-                <td class="px-5 py-3">
+                <td class="py-3 px-4">
                   <app-status-badge [status]="p.statut" />
                 </td>
 
                 <!-- Actions -->
-                <td class="px-5 py-3">
+                <td class="py-3 px-4">
                   <div class="flex items-center gap-2">
                     @if (p.statut === 'EN_ATTENTE') {
                       <button

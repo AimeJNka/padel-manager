@@ -26,6 +26,8 @@ export class StatusBadge {
       REMBOURSE:  'bg-padel-blue/10 text-padel-blue',
       ACTIVE:     'bg-error/10 text-error',
       EXPIRE:     'bg-ink-100 text-ink-500',
+      CONFIRME:   'bg-success/10 text-success',
+      ANNULEE:    'bg-error/10 text-error',
     };
     const color = colorMap[this.status()] ?? 'bg-ink-100 text-ink-500';
     return `${base} ${color}`;
@@ -42,6 +44,8 @@ export class StatusBadge {
       REMBOURSE:  'w-1.5 h-1.5 rounded-full bg-padel-blue',
       ACTIVE:     'w-1.5 h-1.5 rounded-full bg-error',
       EXPIRE:     'w-1.5 h-1.5 rounded-full bg-ink-400',
+      CONFIRME:   'w-1.5 h-1.5 rounded-full bg-success',
+      ANNULEE:    'w-1.5 h-1.5 rounded-full bg-error',
     };
     return dotMap[this.status()] ?? 'w-1.5 h-1.5 rounded-full bg-ink-400';
   });
@@ -57,6 +61,8 @@ export class StatusBadge {
       REMBOURSE:  'Remboursé',
       ACTIVE:     'Active',
       EXPIRE:     'Expirée',
+      CONFIRME:   'Confirmé',
+      ANNULEE:    'Annulée',
     };
     return labelMap[this.status()] ?? this.status();
   });
