@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Créer un match</h2>
+
+<mat-dialog-content class="space-y-4">
+  <div class="bg-padel-surface border border-ink-100 rounded-xl p-4 space-y-1">
+    <p class="text-sm font-medium text-padel-ink">
+      Terrain {{ data.slot.terrain.numero }} · {{ data.slot.terrain.site.nom }}
+    </p>
+    <p class="text-sm text-ink-500">
+      {{ data.slot.dateHeureDebut | date:"dd/MM/yyyy 'à' HH:mm" }}
+    </p>
+    <p class="text-sm text-ink-500">
+      Part estimée par joueur : {{ data.shareEstimate }} €
+    </p>
+  </div>
+
+  <div class="field">
+    <label class="field-lbl">Type de match</label>
+    <mat-radio-group
+      [value]="selectedType()"
+      (change)="onTypeChange($event)"
+      class="flex flex-col gap-2 mt-1">
+      <mat-radio-button value="PRIVE">Privé</mat-radio-button>
+      <mat-radio-button value="PUBLIC">Public</mat-radio-button>
+    </mat-radio-group>
+    <p class="text-xs text-ink-500 mt-2">{{ helperText() }}</p>
+  </div>
+
+  @if (selectedType() === 'PRIVE') {
+    <div class="field mt-4">
+      <label class="field-lbl">Inviter des joueurs (optionnel)</label>
+      <app-member-picker
+        [maxSelection]="3"
+        [excludeMatricules]="excludedMatricules()"
+        [siteId]="data.slot.terrain.site.idSite"
+        [(selectedMembers)]="invites" />
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onCancel()">Annuler</button>
+  <button mat-flat-button color="primary" (click)="onConfirm()">Confirmer</button>
+</mat-dialog-actions>

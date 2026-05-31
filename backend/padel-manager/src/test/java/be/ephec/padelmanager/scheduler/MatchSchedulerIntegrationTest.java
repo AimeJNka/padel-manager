@@ -79,7 +79,7 @@ class MatchSchedulerIntegrationTest {
         assertThat(penalites).hasSize(1);
         assertThat(penalites.get(0).getMotif())
                 .contains("Match privé #")
-                .contains("incomplet — UC-03");
+                .contains("incomplet");
         assertThat(penalites.get(0).getDateFin())
                 .isAfter(LocalDateTime.now().plusDays(6))
                 .isBefore(LocalDateTime.now().plusDays(8));
@@ -128,6 +128,41 @@ class MatchSchedulerIntegrationTest {
 
         Membre updated = membreRepo.findById("G0001").orElseThrow();
         assertThat(updated.getSoldeDu().compareTo(new BigDecimal("40.00"))).isZero();
+    }
+
+    @Test
+    void job4_marksFinishedMatchAsEffectue() {
+        // Match started 2h ago (fin = debut + 90min = now - 30min) — already past end time.
+        // Created directly as DEMARRE to simulate Job 3 having already run.
+        // V13 CHECK constraint accepts EFFECTUE — proves real DB enforcement.
+        Membre organizer = membreRepo.findById("G0001").orElseThrow();
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(
+                terrainRepo, disponibiliteRepo, 1, LocalDateTime.now().minusHours(2));
+        MatchPadel match = IntegrationTestFixtures.createMatch(
+                matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.DEMARRE);
+
+        scheduler.traiterMatchesHoraire();
+
+        MatchPadel result = matchPadelRepo.findById(match.getIdMatch()).orElseThrow();
+        assertThat(result.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+    }
+
+    @Test
+    void job4_enAttentePastFin_job3ThenJob4_becomesEffectue() {
+        // Match started 3h ago (fin = debut + 90min = now - 90min).
+        // In one scheduler tick: Job 3 sees EN_ATTENTE + past debut → DEMARRE;
+        // Job 4 then sees DEMARRE + past fin → EFFECTUE.
+        // Models a scheduler resuming after the match has fully ended.
+        Membre organizer = membreRepo.findById("G0001").orElseThrow();
+        Disponibilite dispo = IntegrationTestFixtures.createDisponibilite(
+                terrainRepo, disponibiliteRepo, 2, LocalDateTime.now().minusHours(3));
+        MatchPadel match = IntegrationTestFixtures.createMatch(
+                matchPadelRepo, dispo, organizer, MatchType.PUBLIC, MatchStatus.EN_ATTENTE);
+
+        scheduler.traiterMatchesHoraire();
+
+        MatchPadel result = matchPadelRepo.findById(match.getIdMatch()).orElseThrow();
+        assertThat(result.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
     }
 
     @Test

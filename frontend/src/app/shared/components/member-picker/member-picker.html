@@ -1,0 +1,75 @@
+<div class="relative">
+
+  <!-- Selected chips row -->
+  @if (selectedMembers().length > 0) {
+    <div class="flex flex-wrap gap-1.5 mb-2">
+      @for (member of selectedMembers(); track member.matricule) {
+        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium
+                     bg-padel-blue/10 text-padel-blue border border-padel-blue/20">
+          {{ member.prenom }} {{ member.nom }}
+          <button
+            type="button"
+            (click)="onRemoveChip(member.matricule)"
+            class="ml-0.5 hover:text-padel-ink transition-colors leading-none">
+            &#xD7;
+          </button>
+        </span>
+      }
+    </div>
+  }
+
+  <!-- Input + dropdown (only rendered when more slots available) -->
+  @if (canAddMore()) {
+    <div class="relative">
+      <input
+        type="text"
+        [value]="query()"
+        (input)="onInputChange($any($event.target).value)"
+        (focus)="onFocus()"
+        [placeholder]="placeholder()"
+        class="input" />
+
+      <!-- Dropdown panel -->
+      @if (showDropdown()) {
+        <div class="absolute top-full left-0 right-0 mt-1 z-10
+                    bg-white border border-ink-100 rounded-lg shadow-sm
+                    max-h-52 overflow-y-auto">
+
+          @if (loading()) {
+            <p class="px-3 py-2 text-xs text-ink-500">Recherche&hellip;</p>
+          } @else if (query().length > 0 && query().length < 2) {
+            <p class="px-3 py-2 text-xs text-ink-500">Tapez au moins 2 caractères</p>
+          } @else if (filteredResults().length === 0) {
+            <p class="px-3 py-2 text-xs text-ink-500">Aucun membre trouvé</p>
+          } @else {
+            @for (member of filteredResults(); track member.matricule) {
+              <button
+                type="button"
+                (click)="onResultClick(member)"
+                class="flex flex-col w-full text-left px-3 py-2
+                       hover:bg-padel-surface transition-colors
+                       border-b border-ink-100 last:border-0">
+                <span class="text-sm font-medium text-padel-ink">
+                  {{ member.prenom }} {{ member.nom }}
+                </span>
+                <span class="text-xs text-ink-500">
+                  {{ member.matricule }}
+                  @if (member.siteNom) {
+                    &nbsp;·&nbsp;{{ member.siteNom }}
+                  }
+                </span>
+              </button>
+            }
+          }
+
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Selection counter -->
+  <p class="mt-1.5 text-xs text-ink-500">
+    {{ selectedMembers().length }} / {{ maxSelection() }} sélectionné(s)
+  </p>
+
+</div>

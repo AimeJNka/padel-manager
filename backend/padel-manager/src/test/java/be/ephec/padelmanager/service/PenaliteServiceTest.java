@@ -152,11 +152,11 @@ class PenaliteServiceTest {
         Membre membre = new Membre();
         membre.setMatricule("G0042");
 
-        service.appliquerPenalite(membre, 7, "Match privé #5 incomplet — UC-03");
+        service.appliquerPenalite(membre, 7, "Match privé #5 incomplet");
 
         ArgumentCaptor<Penalite> captor = ArgumentCaptor.forClass(Penalite.class);
         verify(penaliteRepo, times(1)).save(captor.capture());
-        assertThat(captor.getValue().getMotif()).isEqualTo("Match privé #5 incomplet — UC-03");
+        assertThat(captor.getValue().getMotif()).isEqualTo("Match privé #5 incomplet");
     }
 
     @Test

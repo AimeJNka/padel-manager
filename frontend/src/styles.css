@@ -1,3 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  /* Padel Manager brand */
+  --color-padel-blue: #0061FF;
+  --color-padel-lime: #DFFF00;
+  --color-padel-ink: #121826;
+  --color-padel-surface: #f8fafc;
+
+  /* Neutral grays */
+  --color-ink-100: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+
+  /* Status */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
+
+  /* Font stack */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+}
+
+/* Restore Material M3 body typography after Tailwind v4 preflight */
+body {
+  font: var(--mat-sys-body-medium);
+  color: var(--mat-sys-on-surface);
+  background-color: var(--mat-sys-surface);
+}
+
 /* ==========================================================================
    GLOBAL STYLES
    ==========================================================================
@@ -13,41 +50,15 @@ html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 /* ---------------------------------------------------------------------------
-   Auth pages (login, register) — centered card layout
-   ---------------------------------------------------------------------------
-   .auth-container centers its child (the mat-card) both horizontally
-   and vertically using flexbox. This gives us the classic "centered card
-   on a blank page" look that most login forms use.
-   --------------------------------------------------------------------------- */
-
-.auth-container {
-  display: flex;
-  justify-content: center;   /* horizontal center */
-  align-items: center;        /* vertical center */
-  min-height: 100vh;          /* full viewport height */
-  padding: 1rem;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 420px;           /* don't stretch too wide on large screens */
-}
-
-/* ---------------------------------------------------------------------------
    Form utilities
    --------------------------------------------------------------------------- */
 
-/* Makes form fields take the full width of their container */
 .full-width {
   width: 100%;
 }
 
 /* ---------------------------------------------------------------------------
    Typography utilities
-   ---------------------------------------------------------------------------
-   .mono     → monospace font for technical identifiers (match IDs, matricules,
-               payment IDs, ISO timestamps). Sans-serif for everything else.
-   .num      → right-aligned monospace for tabular numeric columns (money).
    --------------------------------------------------------------------------- */
 
 .mono {
@@ -61,19 +72,6 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
   font-variant-numeric: tabular-nums;
 }
 
-/* Error and success message styles */
-.error-text {
-  color: var(--mat-sys-error, #b00020);
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
-}
-
-.success-text {
-  color: #2e7d32;
-  font-size: 0.875rem;
-  margin: 0.5rem 0;
-}
-
 /* ---------------------------------------------------------------------------
    Dashboard pages — simple centered layout
    --------------------------------------------------------------------------- */
@@ -81,5 +79,122 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .dashboard-container {
   padding: 2rem;
   max-width: 800px;
-  margin: 0 auto;            /* center horizontally */
+  margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Form field utility classes — PadelManager hi-fi design system
+   Reusable: F-M2, F-M3, F-M5, etc.
+   --------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-lbl {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-padel-ink);
+  letter-spacing: -0.005em;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1px solid var(--color-ink-100);
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  color: var(--color-padel-ink);
+  font-family: inherit;
+  transition: border-color 0.12s ease;
+}
+
+.input:hover {
+  border-color: var(--color-ink-300);
+}
+
+.input:focus {
+  border-color: var(--color-padel-ink);
+  outline: none;
+}
+
+.input-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+.badge-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-padel-blue) 10%, white);
+  color: var(--color-padel-blue);
+  border: 1px solid color-mix(in srgb, var(--color-padel-blue) 20%, white);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------------------------
+   Slot picker — booking slot cards
+   --------------------------------------------------------------------------- */
+
+.slot-card {
+  padding: 8px 16px;
+  border: 1px solid var(--color-ink-100);
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-padel-ink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+
+.slot-card:hover:not(:disabled) {
+  border-color: var(--color-padel-blue);
+  background: color-mix(in srgb, var(--color-padel-blue) 6%, white);
+}
+
+.slot-card--selected {
+  border-color: var(--color-padel-blue);
+  background: color-mix(in srgb, var(--color-padel-blue) 12%, white);
+  color: var(--color-padel-blue);
+  font-weight: 600;
+}
+
+.slot-card:disabled {
+  background: var(--color-padel-surface);
+  border-color: var(--color-ink-100);
+  color: var(--color-ink-400);
+  cursor: not-allowed;
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+/* ---------------------------------------------------------------------------
+   Penalty banner
+   --------------------------------------------------------------------------- */
+
+.penalty-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-error) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--color-error) 25%, white);
+  color: var(--color-error);
+  font-size: 14px;
+  font-weight: 500;
 }

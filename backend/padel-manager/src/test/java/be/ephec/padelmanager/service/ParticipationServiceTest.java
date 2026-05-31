@@ -202,6 +202,23 @@ class ParticipationServiceTest {
     }
 
     @Test
+    void annulerParticipation_organizer_throwsForbidden() {
+        Membre organisateur = new Membre();
+        organisateur.setMatricule(MATRICULE);
+        MatchPadel match = new MatchPadel();
+        match.setIdMatch(ID_MATCH);
+        match.setOrganisateur(organisateur);
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+
+        assertThatThrownBy(() -> service.annulerParticipation(ID_MATCH, authAs(MATRICULE)))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("organisateur");
+
+        verify(participationRepo, never()).save(any());
+        verify(paiementRepo, never()).save(any());
+    }
+
+    @Test
     void annulerParticipation_alreadyCancelled() {
         LocalDateTime start = LocalDateTime.now().plusHours(25);
         buildParticipation(start, PaiementStatus.ANNULE, BigDecimal.ZERO, ParticipationStatus.ANNULEE);

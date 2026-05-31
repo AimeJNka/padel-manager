@@ -1,0 +1,37 @@
+<h2 mat-dialog-title>Confirmer le paiement</h2>
+
+<mat-dialog-content>
+  <p class="text-sm text-ink-500 mb-4">
+    Match du {{ data.matchDate | date:'dd/MM/yyyy' }} &agrave; {{ data.matchDate | date:'HH:mm' }}
+  </p>
+
+  <div class="space-y-2 text-sm">
+    <div class="flex justify-between">
+      <span class="text-ink-500">Part terrain</span>
+      <span class="font-medium tabular-nums text-padel-ink">
+        {{ data.montant | currency:'EUR':'symbol':'1.2-2' }}
+      </span>
+    </div>
+
+    @if (data.soldeDu > 0) {
+      <div class="flex justify-between">
+        <span class="text-ink-500">Solde d&ucirc; absorb&eacute;</span>
+        <span class="font-medium tabular-nums text-warning">
+          {{ data.soldeDu | currency:'EUR':'symbol':'1.2-2' }}
+        </span>
+      </div>
+
+      <div class="border-t border-ink-100 pt-2 flex justify-between font-semibold text-padel-ink">
+        <span>Total &agrave; payer</span>
+        <span class="tabular-nums">{{ total | currency:'EUR':'symbol':'1.2-2' }}</span>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Annuler</button>
+  <button mat-flat-button color="primary" cdkFocusInitial (click)="confirm()">
+    Confirmer
+  </button>
+</mat-dialog-actions>

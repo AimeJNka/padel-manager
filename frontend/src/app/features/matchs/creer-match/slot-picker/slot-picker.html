@@ -1,0 +1,27 @@
+@if (isLoading()) {
+  <p class="text-sm text-ink-500">Chargement des créneaux…</p>
+} @else if (error()) {
+  <p class="text-sm text-error">{{ error() }}</p>
+} @else if (slots().length === 0) {
+  <p class="text-sm text-ink-500">Aucun créneau disponible ce jour-là.</p>
+} @else {
+  <div class="space-y-5">
+    @for (group of groups(); track group.time) {
+      <section>
+        <h3 class="text-sm font-semibold text-padel-ink mb-2">{{ group.time }}</h3>
+        <div class="flex flex-wrap gap-2">
+          @for (dispo of group.dispos; track dispo.idDispo) {
+            <button
+              type="button"
+              class="slot-card"
+              [class.slot-card--selected]="selectedId() === dispo.idDispo"
+              [disabled]="dispo.statut === 'RESERVE'"
+              (click)="onSlotClick(dispo)">
+              Terrain {{ dispo.terrain.numero }}
+            </button>
+          }
+        </div>
+      </section>
+    }
+  </div>
+}

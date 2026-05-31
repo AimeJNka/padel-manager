@@ -94,12 +94,13 @@ public class MatchController {
             @RequestParam(required = false) String statut,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) Boolean mine,
+            @RequestParam(defaultValue = "false") boolean includeAnnulee,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Authentication auth) {
         size = Math.min(size, 100);
         return ResponseEntity.ok(matchPadelService.listerMatchs(
-                siteId, statut, type, mine,
+                siteId, statut, type, mine, includeAnnulee,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateCreation")),
                 auth));
     }

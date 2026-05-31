@@ -1,90 +1,106 @@
-<div class="page-container">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Mes paiements</mat-card-title>
-    </mat-card-header>
+<app-page-shell>
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
 
-    <mat-card-content>
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">Mes paiements</h1>
+      <p class="text-sm text-ink-400 mt-1">Vos paiements et remboursements.</p>
+    </header>
 
-      @if (isLoading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      }
+    @if (isLoading()) {
+      <p class="text-sm text-ink-500">Chargement&hellip;</p>
+    }
 
-      @if (!isLoading() && paiements().length === 0) {
-        <p>
-          Aucun paiement enregistré. Inscrivez-vous à un match pour voir vos
-          paiements ici.
-        </p>
-      }
+    @else if (paiements().length === 0) {
+      <p class="text-sm text-ink-500">
+        Aucun paiement enregistré. Inscrivez-vous à un match pour voir vos paiements ici.
+      </p>
+    }
 
-      @if (!isLoading() && paiements().length > 0) {
-        <table mat-table [dataSource]="paiements()" class="full-width">
+    @else {
+      <div class="bg-white rounded-xl border border-ink-100 overflow-x-auto">
+        <table class="w-full text-sm">
 
-          <ng-container matColumnDef="idMatch">
-            <th mat-header-cell *matHeaderCellDef>Match</th>
-            <td mat-cell *matCellDef="let p" class="mono">#{{ p.idMatch }}</td>
-          </ng-container>
+          <thead class="border-b border-ink-100 bg-padel-surface text-ink-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left font-medium py-3 px-4">Match</th>
+              <th class="text-right font-medium py-3 px-4">Montant</th>
+              <th class="text-right font-medium py-3 px-4">Solde inclus</th>
+              <th class="text-left font-medium py-3 px-4">Payé le</th>
+              <th class="text-left font-medium py-3 px-4">Statut</th>
+              <th class="text-left font-medium py-3 px-4">Actions</th>
+            </tr>
+          </thead>
 
-          <ng-container matColumnDef="match">
-            <th mat-header-cell *matHeaderCellDef>Date du match</th>
-            <td mat-cell *matCellDef="let p">
-              {{ p.matchDateHeureDebut | date:'dd/MM/yyyy HH:mm' }}
-            </td>
-          </ng-container>
+          <tbody class="divide-y divide-ink-100">
+            @for (p of paiements(); track p.idPaiement) {
+              <tr>
 
-          <ng-container matColumnDef="montant">
-            <th mat-header-cell *matHeaderCellDef>Montant</th>
-            <td mat-cell *matCellDef="let p" class="mono num">
-              {{ p.montant | number:'1.2-2' }} €
-            </td>
-          </ng-container>
+                <!-- Match: #id link + date -->
+                <td class="py-3 px-4">
+                  <a [routerLink]="['/matchs', p.idMatch]"
+                     class="font-mono text-xs text-padel-blue hover:underline">
+                    #{{ p.idMatch }}
+                  </a>
+                  <div class="text-padel-ink tabular-nums mt-0.5">
+                    {{ p.matchDateHeureDebut | date:'dd/MM/yyyy HH:mm' }}
+                  </div>
+                </td>
 
-          <ng-container matColumnDef="soldeInclus">
-            <th mat-header-cell *matHeaderCellDef>Solde inclus</th>
-            <td mat-cell *matCellDef="let p" class="mono num">
-              @if (p.soldeInclus > 0) {
-                {{ p.soldeInclus | number:'1.2-2' }} €
-              } @else {
-                —
-              }
-            </td>
-          </ng-container>
+                <!-- Montant -->
+                <td class="py-3 px-4 text-right font-medium text-padel-ink tabular-nums">
+                  {{ p.montant | currency:'EUR':'symbol':'1.2-2' }}
+                </td>
 
-          <ng-container matColumnDef="datePaiement">
-            <th mat-header-cell *matHeaderCellDef>Payé le</th>
-            <td mat-cell *matCellDef="let p">
-              {{ p.datePaiement ? (p.datePaiement | date:'dd/MM/yyyy HH:mm') : '—' }}
-            </td>
-          </ng-container>
+                <!-- Solde inclus -->
+                <td class="py-3 px-4 text-right tabular-nums">
+                  @if (p.soldeInclus > 0) {
+                    <span class="font-medium text-padel-ink">
+                      {{ p.soldeInclus | currency:'EUR':'symbol':'1.2-2' }}
+                    </span>
+                  } @else {
+                    <span class="text-ink-400">&mdash;</span>
+                  }
+                </td>
 
-          <ng-container matColumnDef="statut">
-            <th mat-header-cell *matHeaderCellDef>Statut</th>
-            <td mat-cell *matCellDef="let p">
-              <mat-chip [color]="chipColor(p.statut)" selected>{{ p.statut }}</mat-chip>
-            </td>
-          </ng-container>
+                <!-- Date paiement -->
+                <td class="py-3 px-4 text-ink-500 tabular-nums">
+                  {{ p.datePaiement ? (p.datePaiement | date:'dd/MM/yyyy HH:mm') : '—' }}
+                </td>
 
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let p">
-              @if (p.statut === 'EN_ATTENTE') {
-                <button mat-raised-button color="primary" (click)="payer(p.idPaiement)">
-                  Payer
-                </button>
-              }
-              @if ((p.statut === 'EN_ATTENTE' || p.statut === 'PAYE') && matchIsUpcoming(p)) {
-                <button mat-stroked-button (click)="annulerParticipation(p)">
-                  Annuler
-                </button>
-              }
-            </td>
-          </ng-container>
+                <!-- Statut -->
+                <td class="py-3 px-4">
+                  <app-status-badge [status]="p.statut" />
+                </td>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+                <!-- Actions -->
+                <td class="py-3 px-4">
+                  <div class="flex items-center gap-2">
+                    @if (p.statut === 'EN_ATTENTE') {
+                      <button
+                        type="button"
+                        (click)="payer(p)"
+                        class="px-3 py-1.5 bg-padel-blue text-white rounded-lg text-xs font-medium hover:bg-padel-blue/90 transition-colors">
+                        Payer
+                      </button>
+                    }
+                    @if ((p.statut === 'EN_ATTENTE' || p.statut === 'PAYE') && matchIsUpcoming(p)) {
+                      <button
+                        type="button"
+                        (click)="annulerParticipation(p)"
+                        class="px-3 py-1.5 border border-ink-300 text-ink-500 rounded-lg text-xs font-medium hover:border-error hover:text-error transition-colors">
+                        Annuler
+                      </button>
+                    }
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+
         </table>
-      }
+      </div>
+    }
 
-    </mat-card-content>
-  </mat-card>
-</div>
+  </main>
+</app-page-shell>

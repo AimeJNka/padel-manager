@@ -3,6 +3,7 @@ package be.ephec.padelmanager.service.impl;
 import be.ephec.padelmanager.dto.DisponibiliteDTO;
 import be.ephec.padelmanager.dto.MatchPadelDTO;
 import be.ephec.padelmanager.dto.MembreDTO;
+import be.ephec.padelmanager.dto.ParticipationDTO;
 import be.ephec.padelmanager.dto.PersonneDTO;
 import be.ephec.padelmanager.dto.SiteDTO;
 import be.ephec.padelmanager.dto.TerrainDTO;
@@ -17,8 +18,10 @@ import be.ephec.padelmanager.model.MatchPadel;
 import be.ephec.padelmanager.model.MatchStatus;
 import be.ephec.padelmanager.model.MatchType;
 import be.ephec.padelmanager.model.Membre;
+import be.ephec.padelmanager.model.Paiement;
 import be.ephec.padelmanager.model.ParticipationStatus;
 import be.ephec.padelmanager.model.Participation;
+import be.ephec.padelmanager.model.Personne;
 import be.ephec.padelmanager.repository.DisponibiliteRepo;
 import be.ephec.padelmanager.repository.MatchPadelRepo;
 import be.ephec.padelmanager.repository.MembreRepo;
@@ -79,8 +82,8 @@ public class MatchPadelService implements IMatchPadelService {
     @Override
     public void ajouterJoueur(Integer idMatch, String matriculeJoueur, Authentication auth) {
         MatchPadel match = resolveMatch(idMatch);
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est annulé ou terminé");
         }
         if (match.getOrganisateur() == null
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
@@ -93,9 +96,6 @@ public class MatchPadelService implements IMatchPadelService {
         Membre joueur = membreRepo.findById(matriculeJoueur)
                 .orElseThrow(() -> new NotFoundException("Membre introuvable : " + matriculeJoueur));
 
-        if (penaliteRepo.existsByMembreMatriculeAndDateFinAfter(joueur.getMatricule(), LocalDateTime.now())) {
-            throw new ForbiddenException("Le joueur a une pénalité active");
-        }
         if (joueur.getSoldeDu() != null && joueur.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Le joueur a un solde dû");
         }
@@ -121,14 +121,11 @@ public class MatchPadelService implements IMatchPadelService {
         if (!MatchType.PUBLIC.equals(match.getTypeMatch())) {
             throw new BadRequestException("Le match n'est pas public");
         }
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est annulé ou terminé");
         }
         Membre membre = resolveMembre(auth);
 
-        if (penaliteRepo.existsByMembreMatriculeAndDateFinAfter(membre.getMatricule(), LocalDateTime.now())) {
-            throw new ForbiddenException("Vous avez une pénalité active");
-        }
         if (membre.getSoldeDu() != null && membre.getSoldeDu().compareTo(BigDecimal.ZERO) > 0) {
             throw new ForbiddenException("Vous avez un solde dû");
         }
@@ -174,8 +171,8 @@ public class MatchPadelService implements IMatchPadelService {
                 || !match.getOrganisateur().getMatricule().equals(auth.getName())) {
             throw new ForbiddenException("Seul l'organisateur peut annuler le match");
         }
-        if (MatchStatus.ANNULE.equals(match.getStatut())) {
-            throw new BadRequestException("Le match est déjà annulé");
+        if (MatchStatus.ANNULE.equals(match.getStatut()) || MatchStatus.EFFECTUE.equals(match.getStatut())) {
+            throw new BadRequestException("Le match est déjà annulé ou terminé");
         }
 
         Disponibilite dispo = match.getDisponibilite();
@@ -230,7 +227,7 @@ public class MatchPadelService implements IMatchPadelService {
                 matchPadelRepo.save(match);
                 penaliteService.appliquerPenalite(
                         match.getOrganisateur(), MatchPolicy.DUREE_PENALITE_JOURS,
-                        String.format("Match privé #%d incomplet — UC-03", match.getIdMatch()));
+                        String.format("Match privé #%d incomplet", match.getIdMatch()));
                 count++;
             }
         }
@@ -285,6 +282,46 @@ public class MatchPadelService implements IMatchPadelService {
             count++;
         }
         log.info("[Job 3] {} match(es) traité(s), marqués DEMARRE", count);
+        return count;
+    }
+
+    /**
+     * Job 4 — Marque les matchs non annulés comme EFFECTUE une fois que le
+     * créneau est terminé (dateHeureFin <= now).
+     * Hérite du @Transactional de classe (propagation REQUIRED).
+     * Idempotent : seuls les matchs EN_ATTENTE ou DEMARRE sont interrogés ;
+     * après traitement ils passent à EFFECTUE et ne sont plus retraités.
+     * <p>
+     * <b>Note transactionnelle :</b> traitement all-or-nothing.
+     * Si un match parmi le batch lève une exception, toute la transaction
+     * est rollbackée et aucun match n'est marqué EFFECTUE ce tick-ci. Une
+     * isolation par-match (REQUIRES_NEW via bean helper) serait une
+     * amélioration mais sort du périmètre de Sprint B1.
+     * </p>
+     * <p>
+     * <b>Gap accepté — solde organisateur :</b> un match peut atteindre ce
+     * point en statut EN_ATTENTE si Job 3 a manqué son tick de démarrage
+     * (ex. redémarrage du scheduler entre dateHeureDebut et dateHeureFin).
+     * Dans ce cas le solde dû de l'organisateur pour les places vides
+     * n'a jamais été calculé et n'est PAS recalculé rétroactivement ici.
+     * Ce cas est rare et accepté.
+     * </p>
+     *
+     * @return le nombre de matchs effectivement marqués EFFECTUE
+     */
+    @Override
+    public int marquerMatchesEffectues() {
+        List<String> statuts = List.of(MatchStatus.EN_ATTENTE, MatchStatus.DEMARRE);
+        List<MatchPadel> expires = matchPadelRepo.findExpiredMatchesByStatuts(statuts, LocalDateTime.now());
+        log.info("[Job 4] {} match(es) éligible(s) pour marquage EFFECTUE", expires.size());
+        int count = 0;
+        for (MatchPadel match : expires) {
+            match.setStatut(MatchStatus.EFFECTUE);
+            // Save explicite pour lisibilité — dirty checking JPA suffirait, flush en fin de @Transactional
+            matchPadelRepo.save(match);
+            count++;
+        }
+        log.info("[Job 4] {} match(es) marqué(s) EFFECTUE", count);
         return count;
     }
 
@@ -374,6 +411,35 @@ public class MatchPadelService implements IMatchPadelService {
         return dto;
     }
 
+    private MatchPadelDTO toDTOWithParticipations(MatchPadel m) {
+        MatchPadelDTO dto = toDTO(m);
+        List<Participation> participations =
+                participationRepo.findByMatchPadelIdMatch(m.getIdMatch());
+        dto.setParticipations(
+            participations.stream()
+                .filter(p -> !ParticipationStatus.ANNULEE.equals(p.getStatut()))
+                .map(this::toParticipationDTO)
+                .toList()
+        );
+        return dto;
+    }
+
+    private ParticipationDTO toParticipationDTO(Participation p) {
+        ParticipationDTO dto = new ParticipationDTO();
+        dto.setIdParticipation(p.getIdParticipation());
+        dto.setMatricule(p.getMembre().getMatricule());
+        Personne personne = p.getMembre().getPersonne();
+        dto.setPrenom(personne != null ? personne.getPrenom() : null);
+        dto.setNom(personne != null ? personne.getNom() : null);
+        dto.setStatutParticipation(p.getStatut());
+        Paiement pai = p.getPaiement();
+        if (pai != null) {
+            dto.setStatutPaiement(pai.getStatut());
+            dto.setMontantPaiement(pai.getMontant());
+        }
+        return dto;
+    }
+
     private DisponibiliteDTO toDisponibiliteDTO(Disponibilite d) {
         if (d == null) return null;
         DisponibiliteDTO dto = new DisponibiliteDTO();
@@ -435,17 +501,20 @@ public class MatchPadelService implements IMatchPadelService {
     }
 
     @Override
-    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, Pageable pageable, Authentication auth) {
-        return matchPadelRepo.findAll(buildMatchSpec(siteId, statut, type, mine, auth), pageable)
+    public Page<MatchPadelDTO> listerMatchs(Integer siteId, String statut, String type, Boolean mine, boolean includeAnnulee, Pageable pageable, Authentication auth) {
+        // Enforce site scope for SITE members — cannot be bypassed by omitting the param
+        Integer effectiveSiteId = (auth != null && auth.getDetails() instanceof Integer authSiteId)
+                ? authSiteId : siteId;
+        return matchPadelRepo.findAll(buildMatchSpec(effectiveSiteId, statut, type, mine, includeAnnulee, auth), pageable)
                 .map(this::toDTO);
     }
 
     @Override
     public MatchPadelDTO getMatch(Integer idMatch, Authentication auth) {
-        return toDTO(resolveMatch(idMatch));
+        return toDTOWithParticipations(resolveMatch(idMatch));
     }
 
-    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, Authentication auth) {
+    private Specification<MatchPadel> buildMatchSpec(Integer siteId, String statut, String type, Boolean mine, boolean includeAnnulee, Authentication auth) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (siteId != null) {
@@ -461,15 +530,17 @@ public class MatchPadelService implements IMatchPadelService {
                 String matricule = auth.getName();
                 Subquery<Integer> sub = query.subquery(Integer.class);
                 Root<Participation> pRoot = sub.from(Participation.class);
-                sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
-                   .where(
-                       cb.equal(pRoot.get("membre").get("matricule"), matricule),
-                       cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
-                   );
-                predicates.add(cb.or(
-                    cb.equal(root.get("organisateur").get("matricule"), matricule),
-                    root.get("idMatch").in(sub)
-                ));
+                if (includeAnnulee) {
+                    sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                       .where(cb.equal(pRoot.get("membre").get("matricule"), matricule));
+                } else {
+                    sub.select(pRoot.get("matchPadel").get("idMatch").as(Integer.class))
+                       .where(
+                           cb.equal(pRoot.get("membre").get("matricule"), matricule),
+                           cb.notEqual(pRoot.get("statut"), ParticipationStatus.ANNULEE)
+                       );
+                }
+                predicates.add(root.get("idMatch").in(sub));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

@@ -1,0 +1,43 @@
+<article
+  class="bg-white rounded-xl border border-ink-100 p-4 shadow-xs hover:shadow-sm transition-shadow"
+  [class.cursor-pointer]="linkTo() != null"
+  [routerLink]="linkTo()">
+
+  <!-- Header: status + type -->
+  <div class="flex items-center justify-between mb-3">
+    <app-status-badge [status]="match().statut" />
+    <span class="text-xs text-ink-400 uppercase tracking-wide">
+      {{ match().typeMatch === 'PRIVE' ? 'Privé' : 'Public' }}
+    </span>
+  </div>
+
+  <!-- Date + terrain + site -->
+  <div class="space-y-1 mb-3">
+    <div class="text-sm font-semibold text-padel-ink">
+      {{ match().disponibilite.dateHeureDebut | date:'dd/MM/yyyy HH:mm' }}
+    </div>
+    <div class="text-xs text-ink-500">
+      Terrain {{ match().disponibilite.terrain.numero }}
+      · {{ match().disponibilite.terrain.site.nom }}
+    </div>
+  </div>
+
+  <!-- Organisateur + montant -->
+  <div class="flex items-center justify-between mb-3">
+    <div class="text-xs text-ink-500">
+      Organisé par
+      <span class="font-medium text-padel-ink">
+        {{ match().organisateur.personne.prenom }} {{ match().organisateur.personne.nom }}
+      </span>
+    </div>
+    <div class="text-sm font-semibold text-padel-ink tabular-nums">
+      {{ match().montantTotal | currency:'EUR':'symbol':'1.2-2' }}
+    </div>
+  </div>
+
+  <!-- Action slot — parent injects buttons here -->
+  <div class="flex items-center gap-2 pt-3 border-t border-ink-100">
+    <ng-content />
+  </div>
+
+</article>

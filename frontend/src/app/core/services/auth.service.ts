@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, firstValueFrom, catchError, EMPTY, tap } from 'rxjs';
 
-import { LoginResponse, AdminLoginResponse, RegisterRequest, RefreshResponse } from '../models/auth.models';
+import { LoginResponse, AdminLoginResponse, RegisterRequest, RegisterResponse, RefreshResponse } from '../models/auth.models';
 import { TokenStorageService } from './token-storage.service';
 
 // 30s buffer: guards against clock drift between client and server, and ensures a token
@@ -52,7 +52,7 @@ export class AuthService {
     motDePasse: string;
     idType: number;
     idSite?: number;
-  }): Observable<unknown> {
+  }): Observable<RegisterResponse> {
     const body: RegisterRequest = {
       nom: data.nom,
       prenom: data.prenom,
@@ -66,7 +66,9 @@ export class AuthService {
       body.idSite = data.idSite;
     }
 
-    return this.http.post('/api/auth/register', body);
+    return this.http
+      .post<RegisterResponse>('/api/auth/register', body)
+      .pipe(tap(response => this.hydrateFromToken(response.accessToken, response.refreshToken)));
   }
 
   logout(): void {

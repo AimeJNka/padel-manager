@@ -1,0 +1,95 @@
+<div class="flex min-h-screen bg-padel-surface">
+
+  <!-- Sidebar -->
+  <aside class="w-64 shrink-0 flex flex-col bg-white border-r border-ink-100">
+
+    <!-- Brand -->
+    <div class="px-5 py-4 border-b border-ink-100">
+      <a routerLink="/dashboard" class="flex items-center gap-2">
+        <img src="/image/flavi.jpeg" alt="PadelManager"
+             class="h-7 w-7 rounded-md" />
+        <span class="text-padel-ink font-semibold text-[15px] tracking-tight">
+          Padel Manager
+        </span>
+      </a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 px-3 py-4 flex flex-col gap-0.5">
+
+      <a routerLink="/dashboard"
+         routerLinkActive="is-active"
+         [routerLinkActiveOptions]="{ exact: true }"
+         class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">home</mat-icon>
+        Dashboard
+      </a>
+
+      <a routerLink="/matchs"
+         routerLinkActive="is-active"
+         [routerLinkActiveOptions]="{ exact: true }"
+         class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">sports_tennis</mat-icon>
+        Matchs publics
+      </a>
+
+      @if (canCreateMatch()) {
+        <a routerLink="/matchs/creer"
+           routerLinkActive="is-active"
+           class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+          <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">add_circle</mat-icon>
+          Créer un match
+        </a>
+      }
+
+      <a routerLink="/mes-paiements"
+         routerLinkActive="is-active"
+         class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">payment</mat-icon>
+        Mes paiements
+      </a>
+
+      <a routerLink="/mes-penalites"
+         routerLinkActive="is-active"
+         class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">warning</mat-icon>
+        Mes pénalités
+      </a>
+
+      <a routerLink="/historique"
+         routerLinkActive="is-active"
+         class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">history</mat-icon>
+        Historique
+      </a>
+
+    </nav>
+
+    <!-- Footer: member identity + logout -->
+    <div class="p-3 border-t border-ink-100 space-y-1">
+      <div class="flex items-center gap-2 px-3 py-1.5">
+        <mat-icon class="!text-[16px] !h-4 !w-4 text-ink-400">person</mat-icon>
+        <span class="text-xs text-ink-500 font-mono truncate">{{ matricule() }}</span>
+      </div>
+      <button (click)="logout()"
+              class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                     text-ink-500 transition-colors hover:bg-ink-100 hover:text-padel-ink">
+        <mat-icon class="!text-[18px] !h-[18px] !w-[18px]">logout</mat-icon>
+        Déconnexion
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- Main content projection -->
+  <main class="flex-1 overflow-auto">
+    <ng-content />
+  </main>
+
+</div>

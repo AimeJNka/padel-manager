@@ -1,0 +1,48 @@
+<app-page-shell>
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
+
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">Bonjour, {{ greeting() }}</h1>
+    </header>
+
+    <!-- KPI cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <app-kpi-card
+        label="Matches à venir"
+        [value]="upcomingMatches().length"
+        icon="sports_tennis" />
+      <app-kpi-card
+        label="En attente de paiement"
+        [value]="pendingPaiementCount()"
+        icon="payment"
+        [sub]="pendingPaiementCount() > 0 ? 'Paiements à régler' : undefined" />
+      <app-kpi-card
+        label="Solde dû"
+        [value]="soldeDuFormatted()"
+        icon="account_balance_wallet" />
+    </section>
+
+    <!-- Active penalty warning (GLOBAL/SITE only) -->
+    @if (!isLibre() && penaliteActive(); as pen) {
+      <div class="bg-error/10 border border-error/30 rounded-xl p-4 text-sm">
+        <span class="font-semibold text-error">Pénalité active :</span>
+        {{ penaliteMotifDisplay() }} — expire le {{ pen.dateFin | date:'dd/MM/yyyy' }}
+      </div>
+    }
+
+    <!-- Upcoming matches -->
+    <section>
+      <h2 class="text-base font-semibold text-padel-ink mb-4">Mes prochains matches</h2>
+      @if (upcomingMatches().length === 0) {
+        <p class="text-sm text-ink-500">Aucun match à venir.</p>
+      } @else {
+        <div class="grid gap-3 sm:grid-cols-2">
+          @for (m of upcomingMatches(); track m.idMatch) {
+            <app-match-card [match]="m" [linkTo]="'/matchs/' + m.idMatch" />
+          }
+        </div>
+      }
+    </section>
+
+  </main>
+</app-page-shell>

@@ -47,4 +47,22 @@ public interface MatchPadelRepo extends JpaRepository<MatchPadel, Integer>, JpaS
             @Param("statut") String statut,
             @Param("now")    LocalDateTime now
     );
+
+    /**
+     * Fetch non-cancelled matches whose slot end time has passed and whose statut
+     * is still in the provided list. JOIN FETCH prevents LazyInitializationException
+     * from the scheduler context outside an HTTP transaction.
+     * Used by Job 4 (mark matches EFFECTUE once slot is over).
+     */
+    @Query("""
+            SELECT m FROM MatchPadel m
+            JOIN FETCH m.disponibilite d
+            JOIN FETCH m.organisateur
+            WHERE m.statut       IN :statuts
+              AND d.dateHeureFin <= :now
+            """)
+    List<MatchPadel> findExpiredMatchesByStatuts(
+            @Param("statuts") List<String> statuts,
+            @Param("now")     LocalDateTime now
+    );
 }

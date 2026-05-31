@@ -2,7 +2,9 @@ package be.ephec.padelmanager.service;
 
 import be.ephec.padelmanager.dto.MembreDTO;
 import be.ephec.padelmanager.dto.MembreProfilDTO;
+import be.ephec.padelmanager.dto.MembreSearchDTO;
 import be.ephec.padelmanager.dto.UpdateMembreRequest;
+import be.ephec.padelmanager.integration.TestAuth;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.Membre;
@@ -268,5 +270,99 @@ class MembreServiceTest {
         assertThat(dto).isNotNull();
         assertThat(dto.getEmail()).isNull();
         verify(personneRepo, never()).save(any());
+    }
+
+    // ── search ───────────────────────────────────────────────────────────────
+
+    @Test
+    void search_emptyQuery_returnsEmpty() {
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+
+        assertThat(service.search("", null, auth)).isEmpty();
+        assertThat(service.search("a", null, auth)).isEmpty();
+        assertThat(service.search(null, null, auth)).isEmpty();
+
+        verify(membreRepo, never()).searchByPattern(any(), any(), any());
+        verify(membreRepo, never()).searchByPatternAndSite(any(), any(), any(), any());
+    }
+
+    @Test
+    void search_returnsLightweightDTOs_noSensitiveFields() {
+        Membre membre = buildMembre("G0001", "private@test.be", "Dupont", "Jean");
+        membre.setSoldeDu(BigDecimal.valueOf(50));
+        Site site = new Site();
+        site.setNom("Brussels");
+        membre.setSite(site);
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+        when(membreRepo.searchByPattern(any(), any(), any())).thenReturn(List.of(membre));
+
+        List<MembreSearchDTO> results = service.search("jean", null, auth);
+
+        assertThat(results).hasSize(1);
+        MembreSearchDTO dto = results.get(0);
+        assertThat(dto.getMatricule()).isEqualTo("G0001");
+        assertThat(dto.getPrenom()).isEqualTo("Jean");
+        assertThat(dto.getNom()).isEqualTo("Dupont");
+        assertThat(dto.getSiteNom()).isEqualTo("Brussels");
+    }
+
+    @Test
+    void search_filtersBySiteForSiteRole() {
+        var auth = TestAuth.membreSite("S0002", 1);
+        when(membreRepo.searchByPatternAndSite(any(), any(), any(), any())).thenReturn(List.of());
+
+        service.search("jean", null, auth);
+
+        verify(membreRepo).searchByPatternAndSite(any(), any(), any(), any());
+        verify(membreRepo, never()).searchByPattern(any(), any(), any());
+    }
+
+    @Test
+    void search_passesMatchSiteIdToRepo() {
+        Membre s0005 = buildMembreWithSite("S0005", 2, "Site");
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+        when(membreRepo.searchByPattern(any(), org.mockito.ArgumentMatchers.eq(2), any()))
+                .thenReturn(List.of(s0005));
+
+        List<MembreSearchDTO> results = service.search("test", 2, auth);
+
+        verify(membreRepo).searchByPattern(any(), org.mockito.ArgumentMatchers.eq(2), any());
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).getMatricule()).isEqualTo("S0005");
+    }
+
+    @Test
+    void search_includesGlobalAndLibreWhenMatchSiteIdProvided() {
+        Membre g0002 = buildMembreWithType("G0002", "Global");
+        Membre l0001 = buildMembreWithType("L0001", "Libre");
+        var auth = new TestingAuthenticationToken("G0001", null, "ROLE_GLOBAL");
+        when(membreRepo.searchByPattern(any(), org.mockito.ArgumentMatchers.eq(1), any()))
+                .thenReturn(List.of(g0002, l0001));
+
+        List<MembreSearchDTO> results = service.search("test", 1, auth);
+
+        assertThat(results).extracting(MembreSearchDTO::getMatricule)
+                .containsExactlyInAnyOrder("G0002", "L0001");
+    }
+
+    private Membre buildMembreWithSite(String matricule, Integer siteId, String libelleType) {
+        Membre m = buildMembre(matricule, matricule + "@test.be",
+                               "Nom-" + matricule, "Prenom-" + matricule);
+        Site site = new Site();
+        site.setIdSite(siteId);
+        m.setSite(site);
+        TypeMembre tm = new TypeMembre();
+        tm.setLibelle(libelleType);
+        m.setTypeMembre(tm);
+        return m;
+    }
+
+    private Membre buildMembreWithType(String matricule, String libelleType) {
+        Membre m = buildMembre(matricule, matricule + "@test.be",
+                               "Nom-" + matricule, "Prenom-" + matricule);
+        TypeMembre tm = new TypeMembre();
+        tm.setLibelle(libelleType);
+        m.setTypeMembre(tm);
+        return m;
     }
 }

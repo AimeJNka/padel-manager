@@ -4,12 +4,6 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-
 import { AuthService } from '../../../core/services/auth.service';
 
 interface TypeMembre {
@@ -24,15 +18,7 @@ interface Site {
 
 @Component({
   selector: 'app-register',
-  imports: [
-    ReactiveFormsModule,
-    RouterLink,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-  ],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './register.html',
 })
 export class Register implements OnInit {
@@ -43,7 +29,7 @@ export class Register implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly registerForm = this.fb.group({
+  readonly form = this.fb.group({
     nom: ['', Validators.required],
     prenom: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
@@ -60,6 +46,17 @@ export class Register implements OnInit {
   readonly successMessage = signal('');
   readonly isLoading = signal(false);
   readonly showSiteField = signal(false);
+  readonly registeredMatricule = signal<string | null>(null);
+
+  private readonly typeMeta: Record<string, string> = {
+    'Global': 'Réservez sur tous nos sites',
+    'Site':   'Rattaché à un site spécifique',
+    'Libre':  'Sans site attitré, accès libre',
+  };
+
+  protected typeDescription(libelle: string): string {
+    return this.typeMeta[libelle] ?? '';
+  }
 
   ngOnInit(): void {
     this.http.get<TypeMembre[]>('/api/types-membres').subscribe({
@@ -72,25 +69,29 @@ export class Register implements OnInit {
       error: () => this.errorMessage.set('Impossible de charger les sites.')
     });
 
-    this.registerForm.controls.idType.valueChanges
+    this.form.controls.idType.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(idType => {
         const selectedType = this.types().find(t => t.idType === idType);
-        this.showSiteField.set(selectedType?.libelle === 'SITE');
+        const isSite = selectedType?.libelle === 'Site';
+        this.showSiteField.set(isSite);
 
-        if (!this.showSiteField()) {
-          this.registerForm.controls.idSite.setValue(null);
+        const idSiteCtrl = this.form.controls.idSite;
+        if (isSite) {
+          idSiteCtrl.setValidators(Validators.required);
+        } else {
+          idSiteCtrl.clearValidators();
+          idSiteCtrl.setValue(null);
         }
+        idSiteCtrl.updateValueAndValidity();
       });
   }
 
   onSubmit(): void {
-    if (this.registerForm.invalid) {
-      this.registerForm.markAllAsTouched();
-      return;
-    }
+    this.form.markAllAsTouched();
+    if (this.form.invalid) return;
 
-    const v = this.registerForm.getRawValue();
+    const v = this.form.getRawValue();
 
     this.isLoading.set(true);
     this.errorMessage.set('');
@@ -104,11 +105,12 @@ export class Register implements OnInit {
       idType: v.idType ?? 0,
       idSite: v.idSite ?? undefined,
     }).subscribe({
-      next: () => {
+      next: (response) => {
         this.isLoading.set(false);
-        this.successMessage.set('Inscription réussie ! Redirection vers la connexion...');
+        this.registeredMatricule.set(response.matricule);
+        this.successMessage.set('Inscription réussie !');
         this.errorMessage.set('');
-        setTimeout(() => this.router.navigate(['/login']), 1500);
+        setTimeout(() => this.router.navigate(['/dashboard']), 2500);
       },
       error: () => {
         this.isLoading.set(false);

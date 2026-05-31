@@ -58,7 +58,8 @@ public class AuthService implements IAuthService {
         refreshTokenService.revokeAllByMatricule(membre.getMatricule());
 
         String role = membre.getTypeMembre().getLibelle();
-        String accessToken = jwtService.generateToken(membre.getMatricule(), role);
+        Integer memberSiteId = membre.getSite() != null ? membre.getSite().getIdSite() : null;
+        String accessToken = jwtService.generateToken(membre.getMatricule(), role, memberSiteId);
         RefreshTokenDTO refreshToken = refreshTokenService.createRefreshToken(membre.getMatricule());
 
         AuthResponseDTO response = new AuthResponseDTO();
@@ -101,7 +102,8 @@ public class AuthService implements IAuthService {
         membreRepo.save(membre);
 
         String role = typeMembre.getLibelle();
-        String accessToken = jwtService.generateToken(matricule, role);
+        Integer memberSiteId = site != null ? site.getIdSite() : null;
+        String accessToken = jwtService.generateToken(matricule, role, memberSiteId);
         RefreshTokenDTO refreshToken = refreshTokenService.createRefreshToken(matricule);
 
         AuthResponseDTO response = new AuthResponseDTO();

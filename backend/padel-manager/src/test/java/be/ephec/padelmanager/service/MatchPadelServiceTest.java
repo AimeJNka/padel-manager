@@ -43,6 +43,7 @@ import be.ephec.padelmanager.exception.ConflictException;
 import be.ephec.padelmanager.exception.ForbiddenException;
 import be.ephec.padelmanager.exception.NotFoundException;
 import be.ephec.padelmanager.model.DisponibiliteStatus;
+import be.ephec.padelmanager.model.Paiement;
 import be.ephec.padelmanager.model.Participation;
 import be.ephec.padelmanager.model.Site;
 import be.ephec.padelmanager.model.Terrain;
@@ -53,6 +54,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import be.ephec.padelmanager.integration.TestAuth;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class MatchPadelServiceTest {
@@ -189,7 +198,7 @@ class MatchPadelServiceTest {
 
         ArgumentCaptor<String> motifCaptor = ArgumentCaptor.forClass(String.class);
         verify(penaliteService).appliquerPenalite(any(), anyInt(), motifCaptor.capture());
-        assertThat(motifCaptor.getValue()).isEqualTo("Match privé #10 incomplet — UC-03");
+        assertThat(motifCaptor.getValue()).isEqualTo("Match privé #10 incomplet");
     }
 
     @Test
@@ -206,6 +215,86 @@ class MatchPadelServiceTest {
         assertThat(match.getTypeMatch()).isEqualTo(MatchType.PRIVE);
         verify(penaliteService, never()).appliquerPenalite(any(), anyInt(), any());
         verify(matchPadelRepo, never()).save(any());
+    }
+
+    // ── marquerMatchesEffectues ──────────────────
+
+    @Test
+    void marquerMatchesEffectues_demarrePastFin_becomesEffectue() {
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusMinutes(30));
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.DEMARRE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo).save(match);
+    }
+
+    @Test
+    void marquerMatchesEffectues_enAttentePastFin_becomesEffectue_safetyNet() {
+        // Covers the accepted gap: Job 3 missed its tick, match is still EN_ATTENTE at end time
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusMinutes(30));
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(match.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo).save(match);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void marquerMatchesEffectues_annuleExcluded_queryReceivesCorrectStatuts() {
+        // Verifies the service passes EN_ATTENTE+DEMARRE — never ANNULE — to the repo
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        service.marquerMatchesEffectues();
+
+        ArgumentCaptor<List<String>> statutsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(matchPadelRepo).findExpiredMatchesByStatuts(statutsCaptor.capture(), any());
+        assertThat(statutsCaptor.getValue())
+                .containsExactlyInAnyOrder(MatchStatus.EN_ATTENTE, MatchStatus.DEMARRE)
+                .doesNotContain(MatchStatus.ANNULE);
+        verify(matchPadelRepo, never()).save(any(MatchPadel.class));
+    }
+
+    @Test
+    void marquerMatchesEffectues_noExpiredMatches_returnsZeroAndNoSave() {
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of());
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isZero();
+        verify(matchPadelRepo, never()).save(any(MatchPadel.class));
+    }
+
+    @Test
+    void marquerMatchesEffectues_multipleMatches_returnsCorrectCount() {
+        Disponibilite dispo = buildDispo(DISPO_ID, null, null, null);
+        dispo.setDateHeureFin(LocalDateTime.now().minusHours(2));
+        MatchPadel match1 = buildMatch(1, MatchType.PRIVE,  MatchStatus.DEMARRE,    null, dispo);
+        MatchPadel match2 = buildMatch(2, MatchType.PUBLIC, MatchStatus.DEMARRE,    null, dispo);
+        MatchPadel match3 = buildMatch(3, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
+        when(matchPadelRepo.findExpiredMatchesByStatuts(any(), any(LocalDateTime.class)))
+                .thenReturn(List.of(match1, match2, match3));
+
+        int count = service.marquerMatchesEffectues();
+
+        assertThat(count).isEqualTo(3);
+        assertThat(match1.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        assertThat(match2.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        assertThat(match3.getStatut()).isEqualTo(MatchStatus.EFFECTUE);
+        verify(matchPadelRepo, times(3)).save(any(MatchPadel.class));
     }
 
     // ── traiterSoldeMatchesDemarres ──────────────────
@@ -484,6 +573,37 @@ class MatchPadelServiceTest {
                 .hasMessageContaining("999");
     }
 
+    @Test
+    void getMatch_includesNonAnnuleeParticipationsWithPaiementStatus() {
+        MatchPadel match = buildPriveMatch(ID_MATCH, ORGANISATEUR);
+
+        Participation pConfirme = new Participation();
+        pConfirme.setIdParticipation(1);
+        pConfirme.setMembre(buildMembre(JOUEUR_MATRICULE, null, null, null));
+        pConfirme.setStatut(ParticipationStatus.CONFIRME);
+        Paiement paiement = new Paiement();
+        paiement.setStatut("PAYE");
+        paiement.setMontant(BigDecimal.valueOf(15));
+        pConfirme.setPaiement(paiement);
+
+        Participation pAnnulee = new Participation();
+        pAnnulee.setIdParticipation(2);
+        pAnnulee.setMembre(buildMembre("G0003", null, null, null));
+        pAnnulee.setStatut(ParticipationStatus.ANNULEE);
+
+        when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
+        when(participationRepo.findByMatchPadelIdMatch(ID_MATCH))
+                .thenReturn(List.of(pConfirme, pAnnulee));
+
+        MatchPadelDTO dto = service.getMatch(ID_MATCH, null);
+
+        assertThat(dto.getParticipations()).hasSize(1);
+        var p = dto.getParticipations().get(0);
+        assertThat(p.getStatutParticipation()).isEqualTo(ParticipationStatus.CONFIRME);
+        assertThat(p.getStatutPaiement()).isEqualTo("PAYE");
+        assertThat(p.getMontantPaiement()).isEqualByComparingTo(BigDecimal.valueOf(15));
+    }
+
     // ════════════════════════════════════════════════════════════
     // ajouterJoueur — action path with 9 guard scenarios
     // ════════════════════════════════════════════════════════════
@@ -534,18 +654,25 @@ class MatchPadelServiceTest {
     }
 
     @Test
-    void ajouterJoueur_joueurHasActivePenalty_throwsForbidden() {
-        Membre org = buildMembre(ORGANISATEUR, null, null, null);
+    void ajouterJoueur_joueurHasActivePenalty_succeeds() {
+        // Penalty no longer blocks invitation — only creation is gated (ADR-0004)
+        Membre org    = buildMembre(ORGANISATEUR, null, null, null);
         MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(true);
+        // NO penaliteRepo stub — penalty check removed from ajouterJoueur
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, JOUEUR_MATRICULE)).thenReturn(false);
+        when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
+                ID_MATCH, ParticipationStatus.ANNULEE)).thenReturn(3L);
 
-        assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
-                .isInstanceOf(ForbiddenException.class);
-        verify(participationRepo, never()).save(any());
+        service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR));
+
+        verify(participationRepo, times(1)).save(any());
+        verify(paiementService, times(1)).creerPourParticipation(any());
+        verify(penaliteRepo, never())
+                .existsByMembreMatriculeAndDateFinAfter(any(), any(LocalDateTime.class));
     }
 
     @Test
@@ -555,8 +682,6 @@ class MatchPadelServiceTest {
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, BigDecimal.valueOf(15));
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.ajouterJoueur(ID_MATCH, JOUEUR_MATRICULE, authAs(ORGANISATEUR)))
                 .isInstanceOf(ForbiddenException.class);
@@ -570,8 +695,6 @@ class MatchPadelServiceTest {
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
         when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
                 ID_MATCH, JOUEUR_MATRICULE)).thenReturn(true);
 
@@ -587,8 +710,6 @@ class MatchPadelServiceTest {
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
         when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
                 ID_MATCH, JOUEUR_MATRICULE)).thenReturn(false);
         when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
@@ -606,8 +727,6 @@ class MatchPadelServiceTest {
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(JOUEUR_MATRICULE)).thenReturn(Optional.of(joueur));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(JOUEUR_MATRICULE), any(LocalDateTime.class))).thenReturn(false);
         when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
                 ID_MATCH, JOUEUR_MATRICULE)).thenReturn(false);
         when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
@@ -654,17 +773,28 @@ class MatchPadelServiceTest {
     }
 
     @Test
-    void sInscrireMatchPublic_membreHasActivePenalty_throwsForbidden() {
-        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, null);
+    void sInscrireMatchPublic_membreHasActivePenalty_succeeds() {
+        // Penalty no longer blocks public match inscription — only creation is gated (ADR-0004)
+        Site site = buildSite(SITE_ID);
+        Terrain terrain = buildTerrain(TERRAIN_ID, site);
+        Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,
+                LocalDateTime.now().plusHours(24), terrain);
+        MatchPadel match = buildMatch(ID_MATCH, MatchType.PUBLIC, MatchStatus.EN_ATTENTE, null, dispo);
         Membre membre = buildMembre(ORGANISATEUR, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(true);
+        // NO penaliteRepo stub — penalty check removed from sInscrireMatchPublic
+        when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
+                ID_MATCH, ORGANISATEUR)).thenReturn(false);
+        when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
+                ID_MATCH, ParticipationStatus.ANNULEE)).thenReturn(3L);
 
-        assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
-                .isInstanceOf(ForbiddenException.class);
-        verify(participationRepo, never()).save(any());
+        service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR));
+
+        verify(participationRepo, times(1)).save(any());
+        verify(paiementService, times(1)).creerPourParticipation(any());
+        verify(penaliteRepo, never())
+                .existsByMembreMatriculeAndDateFinAfter(any(), any(LocalDateTime.class));
     }
 
     @Test
@@ -673,8 +803,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, null, BigDecimal.valueOf(15));
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
                 .isInstanceOf(ForbiddenException.class);
@@ -687,8 +815,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
                 .isInstanceOf(BadRequestException.class);
@@ -705,8 +831,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, siteB, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
                 .isInstanceOf(ForbiddenException.class);
@@ -723,8 +847,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
                 .isInstanceOf(BadRequestException.class);
@@ -742,8 +864,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, typeMembre, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
 
         assertThatThrownBy(() -> service.sInscrireMatchPublic(ID_MATCH, authAs(ORGANISATEUR)))
                 .isInstanceOf(BadRequestException.class);
@@ -760,8 +880,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
         when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
                 ID_MATCH, ORGANISATEUR)).thenReturn(true);
 
@@ -780,8 +898,6 @@ class MatchPadelServiceTest {
         Membre membre = buildMembre(ORGANISATEUR, null, null, null);
         when(matchPadelRepo.findById(ID_MATCH)).thenReturn(Optional.of(match));
         when(membreRepo.findById(ORGANISATEUR)).thenReturn(Optional.of(membre));
-        when(penaliteRepo.existsByMembreMatriculeAndDateFinAfter(
-                eq(ORGANISATEUR), any(LocalDateTime.class))).thenReturn(false);
         when(participationRepo.existsByMatchPadelIdMatchAndMembreMatricule(
                 ID_MATCH, ORGANISATEUR)).thenReturn(false);
         when(participationRepo.countByMatchPadelIdMatchAndStatutNot(
@@ -953,7 +1069,7 @@ class MatchPadelServiceTest {
         when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(Page.empty());
 
-        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, null,
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, null, false,
                 PageRequest.of(0, 10), null);
 
         verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
@@ -967,11 +1083,47 @@ class MatchPadelServiceTest {
         when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(match)));
 
-        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, true,
+        Page<MatchPadelDTO> result = service.listerMatchs(null, null, null, true, false,
                 PageRequest.of(0, 10), authAs(ORGANISATEUR));
 
         verify(matchPadelRepo).findAll(any(Specification.class), any(Pageable.class));
         assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void listerMatchs_siteRoleEnforcesOwnSiteFilter() {
+        // SITE member with details=1 — frontend passes no siteId (null)
+        Authentication siteAuth = TestAuth.membreSite("S0002", 1);
+        when(matchPadelRepo.findAll(any(Specification.class), any(Pageable.class)))
+                .thenReturn(Page.empty());
+
+        service.listerMatchs(null, null, null, null, false, PageRequest.of(0, 10), siteAuth);
+
+        // Capture the Specification passed to the repository
+        ArgumentCaptor<Specification<MatchPadel>> specCaptor =
+                ArgumentCaptor.forClass(Specification.class);
+        verify(matchPadelRepo).findAll(specCaptor.capture(), any(Pageable.class));
+
+        // Execute the captured spec with mocked JPA Criteria objects
+        // to verify the site=1 predicate is built despite siteId param being null
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        @SuppressWarnings("unchecked")
+        CriteriaQuery<MatchPadel> query = mock(CriteriaQuery.class);
+        @SuppressWarnings("unchecked")
+        Root<MatchPadel> root = mock(Root.class);
+        @SuppressWarnings("unchecked")
+        Path<Object> path = mock(Path.class);
+        Predicate predicate = mock(Predicate.class);
+
+        when(root.get(anyString())).thenReturn(path);
+        when(path.get(anyString())).thenReturn(path);
+        when(cb.equal(any(), eq(1))).thenReturn(predicate);
+        when(cb.and(any(Predicate[].class))).thenReturn(predicate);
+
+        specCaptor.getValue().toPredicate(root, query, cb);
+
+        // Site=1 predicate must have been built — even though siteId param was null
+        verify(cb).equal(path, 1);
     }
 
     // ════ helpers ═════════════════════════════════════════════════
