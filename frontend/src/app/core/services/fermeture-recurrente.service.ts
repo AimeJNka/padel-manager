@@ -11,4 +11,12 @@ export class FermetureRecurrenteService {
   findBySite(idSite: number): Observable<FermetureRecurrenteDTO[]> {
     return this.http.get<FermetureRecurrenteDTO[]>(`/api/sites/${idSite}/fermetures/recurrentes`);
   }
+
+  create(idSite: number, dto: FermetureRecurrenteDTO): Observable<FermetureRecurrenteDTO> {
+    return this.http.post<FermetureRecurrenteDTO>(`/api/sites/${idSite}/fermetures/recurrentes`, dto);
+  }
+
+  delete(idSite: number, idFermeture: number): Observable<void> {
+    return this.http.delete<void>(`/api/sites/${idSite}/fermetures/recurrentes/${idFermeture}`);
+  }
 }
