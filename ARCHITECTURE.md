@@ -151,8 +151,7 @@ si la base est vide ou en retard.
 | V13 | Ajout du statut `EFFECTUE` |
 | V14 | Seed admin site 2 et données démo additionnelles |
 
-Le `membre.matricule` est une PK `VARCHAR` mutable — à éviter en clé étrangère
-dans tout nouveau développement (préférer `id_personne`).
+Le `membre.matricule` est une PK `VARCHAR` mutable.
 
 ### 3.7 Gestion des erreurs
 
