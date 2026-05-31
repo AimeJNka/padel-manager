@@ -1,53 +1,49 @@
-<div class="page-container">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Mes pénalités</mat-card-title>
-    </mat-card-header>
+<app-page-shell>
+  <div class="p-6 max-w-5xl mx-auto space-y-6">
 
-    <mat-card-content>
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">Mes pénalités</h1>
+      <p class="text-sm text-ink-400 mt-1">
+        L'historique de vos pénalités actives et expirées.
+      </p>
+    </header>
 
+    @if (errorMessage()) {
+      <div class="bg-error/10 border border-error/30 rounded-lg p-3" role="alert">
+        <p class="text-error text-sm">{{ errorMessage() }}</p>
+      </div>
+    }
+
+    <div class="bg-white rounded-xl border border-ink-100 overflow-hidden">
       @if (isLoading()) {
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      }
-
-      @if (!isLoading() && penalites().length === 0) {
-        <p>Aucune pénalité</p>
-      }
-
-      @if (!isLoading() && penalites().length > 0) {
-        <table mat-table [dataSource]="penalites()" class="full-width">
-
-          <ng-container matColumnDef="dateDebut">
-            <th mat-header-cell *matHeaderCellDef>Début</th>
-            <td mat-cell *matCellDef="let p">{{ p.dateDebut | date:'dd/MM/yyyy HH:mm' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="dateFin">
-            <th mat-header-cell *matHeaderCellDef>Fin</th>
-            <td mat-cell *matCellDef="let p">{{ p.dateFin | date:'dd/MM/yyyy HH:mm' }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="motif">
-            <th mat-header-cell *matHeaderCellDef>Motif</th>
-            <td mat-cell *matCellDef="let p">{{ p.motif }}</td>
-          </ng-container>
-
-          <ng-container matColumnDef="statut">
-            <th mat-header-cell *matHeaderCellDef>Statut</th>
-            <td mat-cell *matCellDef="let p">
-              @if (p.active) {
-                <mat-chip color="warn" selected>Actif</mat-chip>
-              } @else {
-                <mat-chip>Expiré</mat-chip>
-              }
-            </td>
-          </ng-container>
-
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+        <p class="text-sm text-ink-400 p-6 text-center">Chargement...</p>
+      } @else if (penalites().length === 0) {
+        <p class="text-sm text-ink-500 p-6 text-center">Aucune pénalité pour le moment.</p>
+      } @else {
+        <table class="w-full text-sm">
+          <thead class="border-b border-ink-100 bg-padel-surface text-ink-500 text-xs uppercase tracking-wider">
+            <tr>
+              <th class="text-left font-medium py-3 px-4">Début</th>
+              <th class="text-left font-medium py-3 px-4">Fin</th>
+              <th class="text-left font-medium py-3 px-4">Motif</th>
+              <th class="text-left font-medium py-3 px-4">Statut</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-ink-100">
+            @for (p of penalites(); track p.idPenalite) {
+              <tr>
+                <td class="py-3 px-4 text-padel-ink">{{ p.dateDebut | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="py-3 px-4 text-padel-ink">{{ p.dateFin | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td class="py-3 px-4 text-padel-ink">{{ p.motif }}</td>
+                <td class="py-3 px-4">
+                  <app-status-badge [status]="p.active ? 'ACTIVE' : 'EXPIRE'" />
+                </td>
+              </tr>
+            }
+          </tbody>
         </table>
       }
+    </div>
 
-    </mat-card-content>
-  </mat-card>
-</div>
+  </div>
+</app-page-shell>

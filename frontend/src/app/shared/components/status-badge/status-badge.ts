@@ -24,6 +24,8 @@ export class StatusBadge {
       EFFECTUE:   'bg-ink-100 text-ink-500',
       RESERVE:    'bg-padel-blue/10 text-padel-blue',
       REMBOURSE:  'bg-padel-blue/10 text-padel-blue',
+      ACTIVE:     'bg-error/10 text-error',
+      EXPIRE:     'bg-ink-100 text-ink-500',
     };
     const color = colorMap[this.status()] ?? 'bg-ink-100 text-ink-500';
     return `${base} ${color}`;
@@ -38,6 +40,8 @@ export class StatusBadge {
       EFFECTUE:   'w-1.5 h-1.5 rounded-full bg-ink-400',
       RESERVE:    'w-1.5 h-1.5 rounded-full bg-padel-blue',
       REMBOURSE:  'w-1.5 h-1.5 rounded-full bg-padel-blue',
+      ACTIVE:     'w-1.5 h-1.5 rounded-full bg-error',
+      EXPIRE:     'w-1.5 h-1.5 rounded-full bg-ink-400',
     };
     return dotMap[this.status()] ?? 'w-1.5 h-1.5 rounded-full bg-ink-400';
   });
@@ -51,6 +55,8 @@ export class StatusBadge {
       EFFECTUE:   'Terminé',
       RESERVE:    'Réservé',
       REMBOURSE:  'Remboursé',
+      ACTIVE:     'Active',
+      EXPIRE:     'Expirée',
     };
     return labelMap[this.status()] ?? this.status();
   });

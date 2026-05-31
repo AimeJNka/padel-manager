@@ -1,36 +1,24 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-
-import { MatCardModule } from '@angular/material/card';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { PenaliteService } from '../../../core/services/penalite.service';
 import { Penalite } from '../../../core/models/penalite.model';
+import { PageShell } from '../../../shared/components/page-shell/page-shell';
+import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 
 @Component({
   selector: 'app-mes-penalites',
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatTableModule,
-    MatChipsModule,
-    MatProgressBarModule,
-    MatSnackBarModule,
-  ],
+  imports: [DatePipe, PageShell, StatusBadge],
   templateUrl: './mes-penalites.html',
 })
 export class MesPenalites implements OnInit {
 
   private readonly penaliteService = inject(PenaliteService);
-  private readonly snackBar = inject(MatSnackBar);
 
   readonly penalites = signal<Penalite[]>([]);
   readonly isLoading = signal(false);
-  readonly displayedColumns: string[] = ['dateDebut', 'dateFin', 'motif', 'statut'];
+  readonly errorMessage = signal<string>('');
 
   ngOnInit(): void {
     this.load();
@@ -38,6 +26,7 @@ export class MesPenalites implements OnInit {
 
   load(): void {
     this.isLoading.set(true);
+    this.errorMessage.set('');
     this.penaliteService.getMesPenalites().subscribe({
       next: (data) => {
         this.penalites.set(data);
@@ -45,9 +34,7 @@ export class MesPenalites implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.isLoading.set(false);
-        this.snackBar.open(err.error?.error ?? 'Erreur lors du chargement.', 'Fermer', {
-          duration: 4000,
-        });
+        this.errorMessage.set(err.error?.error ?? 'Erreur lors du chargement.');
       },
     });
   }
