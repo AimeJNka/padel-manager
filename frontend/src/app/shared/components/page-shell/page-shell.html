@@ -1,7 +1,37 @@
-<div class="flex min-h-screen bg-padel-surface">
+<div class="relative min-h-screen flex flex-col md:flex-row bg-padel-surface">
 
-  <!-- Sidebar -->
-  <aside class="w-64 shrink-0 flex flex-col bg-white border-r border-ink-100">
+  <!-- Mobile top bar (hidden on md+) -->
+  <header class="md:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-white border-b border-ink-100">
+    <button type="button"
+            (click)="toggleMenu()"
+            aria-label="Ouvrir le menu de navigation"
+            class="p-2 -ml-2 rounded-md text-ink-500 hover:bg-ink-100 hover:text-padel-ink">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="6"  x2="20" y2="6"/>
+        <line x1="4" y1="12" x2="20" y2="12"/>
+        <line x1="4" y1="18" x2="20" y2="18"/>
+      </svg>
+    </button>
+    <img src="/image/flavi.jpeg" alt="" class="h-6 w-6 rounded-md" />
+    <span class="text-padel-ink font-semibold text-[15px] tracking-tight">Padel Manager</span>
+  </header>
+
+  <!-- Mobile backdrop (visible only when drawer is open, md hides it) -->
+  @if (mobileMenuOpen()) {
+    <div class="md:hidden fixed inset-0 bg-black/50 z-40"
+         (click)="closeMenu()"
+         aria-hidden="true"></div>
+  }
+
+  <!-- Sidebar: mobile drawer below md, static rail at md+ -->
+  <aside role="dialog"
+         aria-modal="true"
+         aria-label="Navigation principale"
+         class="fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-200 ease-out
+                flex flex-col bg-white border-r border-ink-100
+                md:static md:translate-x-0 md:w-64 md:z-auto md:transition-none md:shrink-0"
+         [class.-translate-x-full]="!mobileMenuOpen()">
 
     <!-- Brand -->
     <div class="px-5 py-4 border-b border-ink-100">
