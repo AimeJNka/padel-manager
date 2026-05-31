@@ -4,17 +4,10 @@ import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { MatDialog } from '@angular/material/dialog';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
+import { PageShell } from '../../../shared/components/page-shell/page-shell';
+import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 import { AuthService } from '../../../core/services/auth.service';
 import { PaiementService } from '../../../core/services/paiement.service';
 import { Paiement, PaiementStatut } from '../../../core/models/paiement.model';
@@ -25,16 +18,9 @@ import { ConfirmDialog, ConfirmDialogData } from '../../../shared/dialogs/confir
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatButtonModule,
-    MatTableModule,
-    MatChipsModule,
-    MatPaginatorModule,
-    MatProgressBarModule,
     MatSnackBarModule,
+    PageShell,
+    StatusBadge,
   ],
   templateUrl: './admin-paiements.html',
 })
@@ -55,8 +41,6 @@ export class AdminPaiements implements OnInit {
 
   readonly paiements = signal<Paiement[]>([]);
   readonly totalElements = signal(0);
-  readonly pageIndex = signal(0);
-  readonly pageSize = signal(20);
   readonly isLoading = signal(false);
 
   readonly statutOptions: { value: PaiementStatut | ''; label: string }[] = [
@@ -65,16 +49,6 @@ export class AdminPaiements implements OnInit {
     { value: 'PAYE', label: 'Payé' },
     { value: 'ANNULE', label: 'Annulé' },
     { value: 'REMBOURSE', label: 'Remboursé' },
-  ];
-
-  readonly displayedColumns: string[] = [
-    'idMatch',
-    'nomJoueur',
-    'matricule',
-    'montant',
-    'datePaiement',
-    'statut',
-    'actions',
   ];
 
   ngOnInit(): void {
@@ -95,8 +69,6 @@ export class AdminPaiements implements OnInit {
         statut: v.statut,
         matchId: v.matchId,
         siteId: this.isGlobalAdmin() ? v.siteId : null,
-        page: this.pageIndex(),
-        size: this.pageSize(),
       })
       .subscribe({
         next: (page) => {
@@ -112,19 +84,11 @@ export class AdminPaiements implements OnInit {
   }
 
   onFilter(): void {
-    this.pageIndex.set(0);
     this.load();
   }
 
   onReset(): void {
     this.filterForm.reset({ matricule: '', statut: '', matchId: null, siteId: null });
-    this.pageIndex.set(0);
-    this.load();
-  }
-
-  onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
     this.load();
   }
 
@@ -158,19 +122,5 @@ export class AdminPaiements implements OnInit {
         },
       });
     });
-  }
-
-  chipColor(statut: PaiementStatut): 'primary' | 'accent' | 'warn' | undefined {
-    switch (statut) {
-      case 'EN_ATTENTE':
-        return 'warn';
-      case 'PAYE':
-        return 'primary';
-      case 'ANNULE':
-        return 'accent';
-      case 'REMBOURSE':
-      default:
-        return undefined;
-    }
   }
 }
