@@ -8,6 +8,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SiteService, Site } from '../../../core/services/site.service';
 import { TabHoraires } from './tab-horaires';
 import { TabRecurrentes } from './tab-recurrentes';
+import { TabPonctuelles } from './tab-ponctuelles';
 
 type Tab = 'horaires' | 'recurrentes' | 'ponctuelles';
 
@@ -15,7 +16,7 @@ type Tab = 'horaires' | 'recurrentes' | 'ponctuelles';
   selector: 'app-gestion-horaires',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PageShell, ReactiveFormsModule, RouterLink, TabHoraires, TabRecurrentes],
+  imports: [PageShell, ReactiveFormsModule, RouterLink, TabHoraires, TabRecurrentes, TabPonctuelles],
   templateUrl: './gestion-horaires.html',
 })
 export class GestionHoraires implements OnInit {

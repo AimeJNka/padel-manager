@@ -73,11 +73,7 @@
       @switch (activeTab()) {
         @case ('horaires') { <app-tab-horaires [siteId]="selectedSiteId()!" /> }
         @case ('recurrentes') { <app-tab-recurrentes [siteId]="selectedSiteId()!" /> }
-        @case ('ponctuelles') {
-          <div class="bg-white rounded-xl border border-ink-100 p-6">
-            <p class="text-sm text-ink-500 text-center">Fermetures ponctuelles — Sprint 4.3 à venir.</p>
-          </div>
-        }
+        @case ('ponctuelles') { <app-tab-ponctuelles [siteId]="selectedSiteId()!" /> }
       }
 
     } @else {

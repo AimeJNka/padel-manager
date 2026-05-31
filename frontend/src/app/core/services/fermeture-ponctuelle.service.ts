@@ -11,4 +11,12 @@ export class FermeturePonctuelleService {
   findBySite(idSite: number): Observable<FermeturePonctuelleDTO[]> {
     return this.http.get<FermeturePonctuelleDTO[]>(`/api/sites/${idSite}/fermetures/ponctuelles`);
   }
+
+  create(idSite: number, dto: FermeturePonctuelleDTO): Observable<FermeturePonctuelleDTO> {
+    return this.http.post<FermeturePonctuelleDTO>(`/api/sites/${idSite}/fermetures/ponctuelles`, dto);
+  }
+
+  delete(idSite: number, idFermeture: number): Observable<void> {
+    return this.http.delete<void>(`/api/sites/${idSite}/fermetures/ponctuelles/${idFermeture}`);
+  }
 }
