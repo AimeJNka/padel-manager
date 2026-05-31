@@ -27,7 +27,7 @@ export class GenerationCreneaux implements OnInit {
   protected readonly sites = signal<Site[]>([]);
   protected readonly isSubmitting = signal(false);
   protected readonly errorMessage = signal<string>('');
-  protected readonly result = signal<{ count: number; siteName: string; annee: number } | null>(null);
+  protected readonly successMessage = signal<string>('');
 
   protected readonly currentYear = new Date().getFullYear();
   protected readonly yearOptions = [this.currentYear, this.currentYear + 1];
@@ -56,6 +56,11 @@ export class GenerationCreneaux implements OnInit {
       },
       error: () => this.errorMessage.set('Impossible de charger la liste des sites.'),
     });
+
+    this.form.valueChanges.subscribe(() => {
+      this.successMessage.set('');
+      this.errorMessage.set('');
+    });
   }
 
   onGenerer(): void {
@@ -79,16 +84,6 @@ export class GenerationCreneaux implements OnInit {
       .subscribe(confirmed => { if (confirmed) this.callApi(true); });
   }
 
-  protected resetForm(): void {
-    this.result.set(null);
-    this.errorMessage.set('');
-    if (this.isGlobal()) {
-      this.form.reset({ siteId: null, annee: null });
-    } else {
-      this.form.patchValue({ annee: null });
-    }
-  }
-
   private callApi(regenerate: boolean): void {
     const siteId = this.form.controls.siteId.value!;
     const annee = this.form.controls.annee.value!;
@@ -96,7 +91,7 @@ export class GenerationCreneaux implements OnInit {
 
     this.isSubmitting.set(true);
     this.errorMessage.set('');
-    this.result.set(null);
+    this.successMessage.set('');
 
     const call$ = regenerate
       ? this.dispoService.regenerer({ siteId, annee })
@@ -105,7 +100,8 @@ export class GenerationCreneaux implements OnInit {
     call$.subscribe({
       next: (res) => {
         this.isSubmitting.set(false);
-        this.result.set({ count: res.generated, siteName, annee });
+        const action = regenerate ? 'régénérés' : 'générés';
+        this.successMessage.set(`${res.generated} créneaux ${action} pour ${siteName} en ${annee}.`);
       },
       error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
