@@ -154,6 +154,29 @@ si la base est vide ou en retard.
 Le `membre.matricule` est une PK `VARCHAR` mutable — à éviter en clé étrangère
 dans tout nouveau développement (préférer `id_personne`).
 
+### 3.7 Gestion des erreurs
+
+Toutes les erreurs HTTP retournent un body JSON `{"error": "<message>"}`.
+
+`GlobalExceptionHandler` (`@RestControllerAdvice`) couvre 8 cas avec un statut HTTP approprié :
+
+| Exception | HTTP | Message |
+|-----------|------|---------|
+| `NotFoundException` | 404 | message métier |
+| `UnauthorizedException` | 401 | message métier |
+| `ForbiddenException` | 403 | message métier |
+| `BadRequestException` | 400 | message métier |
+| `ConflictException` | 409 | message métier |
+| `MethodArgumentNotValidException` (@Valid) | 400 | erreurs de champ agrégées |
+| `DataIntegrityViolationException` (JPA) | 409 | "Valeur déjà existante (contrainte d'unicité)" |
+| `RuntimeException` (catch-all) | 500 | "Erreur interne du serveur" + log serveur |
+
+Les erreurs émises par le filtre JWT (token absent, token invalide, droits
+insuffisants) suivent le même contrat via `AuthenticationEntryPoint` et
+`AccessDeniedHandler` configurés dans `SecurityConfig` (réponses
+`{"error": "Non authentifié"}` 401 et `{"error": "Accès refusé"}` 403).
+Contrat cohérent end-to-end.
+
 ## 4. Architecture frontend
 
 ### 4.1 Structure
@@ -213,7 +236,32 @@ L'`AuthService` est le seul service stateful : il maintient les signals
 décodé. La méthode `refresh()` est **réactive** — déclenchée par un 401 dans
 l'intercepteur ou par `hydrate()` au démarrage. Pas de timer auto-refresh.
 
-### 4.5 Design system
+### 4.5 HTTP & Intercepteurs
+
+Un seul intercepteur (`jwtInterceptor`) couvre toute la communication HTTP
+avec le backend :
+
+- **Attachement du token** : injection automatique de `Authorization: Bearer <token>`
+  sur les requêtes vers `/api/*` (sauf routes publiques `login`, `register`,
+  `refresh`, `admin/login`, et lectures publiques `GET /api/sites`,
+  `GET /api/types-membres`).
+- **Refresh lock** : sur 401, une `refreshPromise` partagée au niveau module
+  évite N appels concurrents à `/api/auth/refresh` quand N requêtes échouent
+  simultanément. Toutes les requêtes en attente sont rejouées une fois le
+  refresh résolu.
+- **Anti-retry guard** : `/api/auth/logout` est en `NO_RETRY_ROUTES` pour éviter
+  une boucle infinie après reset de session. Le header `X-Auth-Retry: 1` protège
+  aussi contre les double-retry.
+- **Échec de refresh** : si `refresh()` retourne `false`, `authService.logout()`
+  est appelé et l'erreur 401 originale est rethrowée.
+
+Les composants consomment directement le contrat backend `{error: "<message>"}`
+(cf. `penalites/mes-penalites.ts:37` pour le pattern canonique :
+`err.error?.error ?? 'Erreur lors du chargement.'`). Affichage des erreurs au
+niveau composant : banner inline (auth, admin, matchs) ou snackbar Material
+(`mes-paiements`).
+
+### 4.6 Design system
 
 - **Tailwind v4** via `@import "tailwindcss"` dans `src/styles.css`, avec tokens
   custom dans `@theme` (couleurs `padel-blue` / `padel-lime` / `padel-ink`,
