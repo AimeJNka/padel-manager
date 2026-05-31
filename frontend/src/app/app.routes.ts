@@ -59,7 +59,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Membres' },
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+      import('./features/admin/liste-membres/liste-membres').then(m => m.ListeMembres),
   },
   {
     path: 'admin/creneaux',

@@ -66,6 +66,12 @@ class MembreServiceTest {
         return new TestingAuthenticationToken("admin-user", null, "ROLE_ADMIN_GLOBAL");
     }
 
+    private TestingAuthenticationToken authAdminSite(int idSite) {
+        TestingAuthenticationToken auth = new TestingAuthenticationToken("admin-site-user", null, "ROLE_ADMIN_SITE");
+        auth.setDetails(idSite);
+        return auth;
+    }
+
     private TestingAuthenticationToken authMembre(String matricule) {
         return new TestingAuthenticationToken(matricule, null);
     }
@@ -130,25 +136,48 @@ class MembreServiceTest {
     // ── findAll ──────────────────────────────────────────────────────────────
 
     @Test
-    void findAll_emptyRepo_returnsEmptyList() {
+    void findAll_adminGlobal_emptyRepo_returnsEmptyList() {
         when(membreRepo.findAll()).thenReturn(Collections.emptyList());
 
-        List<MembreDTO> result = service.findAll();
+        List<MembreDTO> result = service.findAll(authAdmin());
 
         assertThat(result).isNotNull().isEmpty();
     }
 
     @Test
-    void findAll_twoMembers_returnsTwoMappedDTOs() {
+    void findAll_adminGlobal_twoMembers_returnsTwoMappedDTOs() {
         Membre m1 = buildMembre("G0001", "g1@test.be", "Dupont", "Jean");
         Membre m2 = buildMembre("S0001", "s1@test.be", "Martin", "Sophie");
         when(membreRepo.findAll()).thenReturn(List.of(m1, m2));
 
-        List<MembreDTO> result = service.findAll();
+        List<MembreDTO> result = service.findAll(authAdmin());
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).getMatricule()).isEqualTo("G0001");
         assertThat(result.get(1).getMatricule()).isEqualTo("S0001");
+    }
+
+    @Test
+    void findAll_adminSite_filtersByAdminSiteId() {
+        Membre m1 = buildMembre("S0001", "s1@test.be", "Martin", "Sophie");
+        Site site1 = new Site();
+        site1.setIdSite(1);
+        m1.setSite(site1);
+
+        Membre m2 = buildMembre("S0099", "s99@test.be", "Other", "Site");
+        Site site2 = new Site();
+        site2.setIdSite(2);
+        m2.setSite(site2);
+
+        Membre m3 = buildMembre("G0001", "g1@test.be", "Dupont", "Jean");
+        // No site on m3 (Global)
+
+        when(membreRepo.findAll()).thenReturn(List.of(m1, m2, m3));
+
+        List<MembreDTO> result = service.findAll(authAdminSite(1));
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getMatricule()).isEqualTo("S0001");
     }
 
     // ── getOne ───────────────────────────────────────────────────────────────

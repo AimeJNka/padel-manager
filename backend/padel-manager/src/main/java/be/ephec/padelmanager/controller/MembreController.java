@@ -37,9 +37,9 @@ public class MembreController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN_GLOBAL')")
-    public ResponseEntity<List<MembreDTO>> getAll() {
-        return ResponseEntity.ok(membreService.findAll());
+    @PreAuthorize("hasAnyRole('ADMIN_GLOBAL', 'ADMIN_SITE')")
+    public ResponseEntity<List<MembreDTO>> getAll(Authentication authentication) {
+        return ResponseEntity.ok(membreService.findAll(authentication));
     }
 
     @GetMapping("/{id}")

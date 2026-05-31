@@ -32,7 +32,7 @@ export class Register implements OnInit {
   readonly form = this.fb.group({
     nom: ['', Validators.required],
     prenom: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]], 
     telephone: ['', Validators.required],
     motDePasse: ['', [Validators.required, Validators.minLength(6)]],
     idType: [null as number | null, [Validators.required, Validators.min(1)]],

@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 
-import { Membre, MembreSearchDTO } from '../models/membre.model';
+import { Membre, MembreDTO, MembreSearchDTO } from '../models/membre.model';
 
 @Injectable({ providedIn: 'root' })
 export class MembreService {
@@ -12,6 +12,10 @@ export class MembreService {
 
   getMonProfil(): Observable<Membre> {
     return this.http.get<Membre>(`${this.baseUrl}/me`);
+  }
+
+  listAll(): Observable<MembreDTO[]> {
+    return this.http.get<MembreDTO[]>(this.baseUrl);
   }
 
   search(q: string, siteId?: number): Observable<MembreSearchDTO[]> {
