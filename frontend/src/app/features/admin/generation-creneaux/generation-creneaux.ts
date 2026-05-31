@@ -123,7 +123,7 @@ export class GenerationCreneaux implements OnInit {
       }
       return 'Site introuvable.';
     }
-    if (err.status >= 500 && !wasRegenerate) {
+    if ((err.status === 409 || err.status >= 500) && !wasRegenerate) {
       return 'Des créneaux existent déjà pour ce site et cette année. Utilisez Régénérer pour les recréer.';
     }
     return 'Une erreur est survenue. Réessayez ou contactez un administrateur.';
