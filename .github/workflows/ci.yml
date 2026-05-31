@@ -14,7 +14,7 @@
 #   3. The JaCoCo artifact is uploaded for coverage visibility.
 #      No gate is enforced — this is a baseline reference only.
 
-name: Backend CI
+name: CI
 
 on:
   push:
@@ -24,7 +24,7 @@ on:
 
 jobs:
   backend:
-    name: Build & Test (Java 21)
+    name: Backend — Build & Test (Java 21)
     runs-on: ubuntu-latest
 
     services:
@@ -196,3 +196,30 @@ jobs:
           name: jacoco-report
           path: backend/padel-manager/target/site/jacoco/
           retention-days: 14
+
+  frontend:
+    name: Frontend — Build & Test (Node 20)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build production bundle
+        working-directory: frontend
+        run: npm run build
+
+      - name: Run unit tests (ChromeHeadless)
+        working-directory: frontend
+        run: npm run test:ci
