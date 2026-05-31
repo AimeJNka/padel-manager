@@ -1,18 +1,36 @@
-<div class="min-h-screen flex">
+<div class="relative min-h-screen bg-padel-ink overflow-hidden">
 
-  <div class="hidden md:block md:w-1/2 relative bg-padel-ink">
-    <img src="/image/login.jpeg" alt=""
-         class="absolute inset-0 w-full h-full object-cover" />
+  <img src="/image/login.jpeg" alt=""
+       class="absolute inset-0 w-full h-full object-cover" />
+
+  <div class="absolute inset-0 bg-padel-ink/40"></div>
+
+  <div class="relative z-10 flex items-center justify-between px-6 md:px-8 py-6">
+    <a routerLink="/">
+      <img src="/image/flavi.jpeg" alt="PadelManager"
+           class="h-12 w-12 rounded-lg shadow-lg" />
+    </a>
+    <p class="text-sm text-white/90">
+      Pas encore de compte ?
+      <a routerLink="/register" class="text-white hover:underline font-medium">
+        Créer un compte →
+      </a>
+    </p>
   </div>
 
-  <div class="w-full md:w-1/2 bg-white flex items-center justify-center px-4 py-8">
-    <div class="w-full max-w-md">
+  <div class="relative z-10 flex items-center justify-center px-4 md:px-6 pb-12">
+    <div class="w-full max-w-xl bg-white rounded-xl shadow-lg p-10 md:p-12">
 
-      <img src="/image/flavi.jpeg" alt="PadelManager"
-           class="h-14 w-14 mb-8 rounded-lg" />
+      <p class="text-padel-blue text-xs uppercase tracking-wider font-semibold mb-3">
+        Espace membre
+      </p>
 
-      <h1 class="text-2xl font-semibold text-padel-ink mb-1 tracking-tight">Connexion</h1>
-      <p class="text-sm text-ink-400 mb-6">Connectez-vous à votre espace membre</p>
+      <h1 class="text-3xl md:text-4xl font-semibold text-padel-ink mb-1 tracking-tight">
+        Se connecter
+      </h1>
+      <p class="text-sm text-ink-500 mb-8">
+        Accédez à votre espace membre
+      </p>
 
       <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
 
@@ -48,18 +66,11 @@
         </button>
       </form>
 
-      <div class="mt-6 pt-6 border-t border-ink-100 space-y-2">
-        <p class="text-sm text-ink-500">
-          Pas encore de compte ?
-          <a routerLink="/register" class="text-padel-blue hover:underline font-medium">
-            Créer un compte
-          </a>
-        </p>
-        <p class="text-xs text-ink-400">
-          <a routerLink="/login/admin" class="hover:text-ink-500 hover:underline">
-            Espace administrateur
-          </a>
-        </p>
+      <div class="mt-6 text-center">
+        <a routerLink="/login/admin"
+           class="text-ink-500 text-xs hover:text-padel-ink transition-colors">
+          Connexion administrateur →
+        </a>
       </div>
 
     </div>
