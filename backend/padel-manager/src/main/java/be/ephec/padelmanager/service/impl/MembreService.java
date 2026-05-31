@@ -38,10 +38,20 @@ public class MembreService implements IMembreService {
     }
 
     @Override
-    public List<MembreDTO> findAll() {
-        return membreRepo.findAll().stream()
-                .map(this::toDTO)
-                .toList();
+    public List<MembreDTO> findAll(Authentication auth) {
+        boolean isGlobal = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(Role.ADMIN_GLOBAL.authority()));
+
+        var all = membreRepo.findAll();
+        var scoped = isGlobal
+                ? all
+                : all.stream()
+                    .filter(m -> m.getSite() != null
+                              && auth.getDetails() instanceof Integer adminSiteId
+                              && m.getSite().getIdSite().equals(adminSiteId))
+                    .toList();
+
+        return scoped.stream().map(this::toDTO).toList();
     }
 
     @Override

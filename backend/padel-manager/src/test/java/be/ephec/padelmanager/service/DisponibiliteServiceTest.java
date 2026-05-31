@@ -21,6 +21,7 @@ import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -210,6 +211,30 @@ class DisponibiliteServiceTest {
 
         assertThat(result).isEqualTo(365);
         verify(disponibiliteRepo).deleteLibreByTerrainSiteAndYearRange(eq(SITE_ID), any(), any());
+    }
+
+    @Test
+    void regenererCreneaux_dispoReferencedByMatch_isPreservedAndNotReInserted() {
+        // GIVEN: a LIBRE dispo referenced by a match (e.g. ANNULE match).
+        // The bulk DELETE preserves it via NOT EXISTS; the generator must skip its (terrain, time) key.
+        Disponibilite preserved = new Disponibilite();
+        preserved.setIdDispo(999);
+        preserved.setTerrain(terrain);
+        preserved.setDateHeureDebut(LocalDateTime.of(2026, 1, 1, 9, 0));
+        preserved.setDateHeureFin(LocalDateTime.of(2026, 1, 1, 10, 30));
+        preserved.setStatut(DisponibiliteStatus.LIBRE);
+
+        when(disponibiliteRepo.findByTerrainSiteIdSiteAndDateHeureDebutBetween(eq(SITE_ID), any(), any()))
+                .thenReturn(List.of(preserved));
+        when(disponibiliteRepo.findMatchedDispoIdsForSiteInRange(eq(SITE_ID), any(), any()))
+                .thenReturn(Set.of(999));
+
+        int result = service.regenererCreneaux(SITE_ID, ANNEE, authentication);
+
+        // Bulk DELETE is still called (the NOT EXISTS clause inside the query is what spares the matched row at SQL level)
+        verify(disponibiliteRepo).deleteLibreByTerrainSiteAndYearRange(eq(SITE_ID), any(), any());
+        // Horaire 09:00–10:31 generates 1 slot/day × 365 days; the Jan 1 09:00 key is excluded → 364 new slots
+        assertThat(result).isEqualTo(364);
     }
 
     // ════ listerDisponibilites ════

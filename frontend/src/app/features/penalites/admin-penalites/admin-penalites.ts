@@ -4,18 +4,10 @@ import { ReactiveFormsModule, FormBuilder } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { MatDialog } from '@angular/material/dialog';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatTableModule } from '@angular/material/table';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatSelectModule } from '@angular/material/select';
 
+import { PageShell } from '../../../shared/components/page-shell/page-shell';
+import { StatusBadge } from '../../../shared/components/status-badge/status-badge';
 import { PenaliteService } from '../../../core/services/penalite.service';
 import { Penalite } from '../../../core/models/penalite.model';
 import { AuthService } from '../../../core/services/auth.service';
@@ -27,17 +19,9 @@ import { ConfirmDialog, ConfirmDialogData } from '../../../shared/dialogs/confir
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatSlideToggleModule,
-    MatTableModule,
-    MatChipsModule,
-    MatPaginatorModule,
-    MatProgressBarModule,
     MatSnackBarModule,
-    MatSelectModule,
+    PageShell,
+    StatusBadge,
   ],
   templateUrl: './admin-penalites.html',
 })
@@ -58,20 +42,8 @@ export class AdminPenalites implements OnInit {
 
   readonly penalites = signal<Penalite[]>([]);
   readonly totalElements = signal(0);
-  readonly pageIndex = signal(0);
-  readonly pageSize = signal(20);
   readonly isLoading = signal(false);
   readonly sites = signal<Site[]>([]);
-
-  readonly displayedColumns: string[] = [
-    'nomJoueur',
-    'matricule',
-    'dateDebut',
-    'dateFin',
-    'motif',
-    'statut',
-    'actions',
-  ];
 
   isGlobalAdmin(): boolean {
     return this.authService.getRole() === 'ADMIN_GLOBAL';
@@ -104,8 +76,6 @@ export class AdminPenalites implements OnInit {
         matricule: v.matricule,
         activeOnly: v.activeOnly,
         siteId: this.isGlobalAdmin() ? v.siteId : null,
-        page: this.pageIndex(),
-        size: this.pageSize(),
       })
       .subscribe({
         next: (page) => {
@@ -121,19 +91,11 @@ export class AdminPenalites implements OnInit {
   }
 
   onFilter(): void {
-    this.pageIndex.set(0);
     this.load();
   }
 
   onReset(): void {
     this.filterForm.reset({ matricule: '', activeOnly: false, siteId: null });
-    this.pageIndex.set(0);
-    this.load();
-  }
-
-  onPageChange(event: PageEvent): void {
-    this.pageIndex.set(event.pageIndex);
-    this.pageSize.set(event.pageSize);
     this.load();
   }
 

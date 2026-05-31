@@ -16,3 +16,36 @@ export interface MembreSearchDTO {
   nom:       string | null;
   siteNom:   string | null;
 }
+
+export interface PersonneRef {
+  idPersonne: number;
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone: string | null;
+}
+
+export interface TypeMembreRef {
+  idType: number;
+  prefixe: 'G' | 'S' | 'L';
+  libelle: string;
+  delaiReservationJours: number;
+  peutCreerMatch: boolean;
+}
+
+export interface SiteRef {
+  idSite: number;
+  nom: string;
+  adresse: string;
+  ville: string;
+  actif: boolean;
+}
+
+export interface MembreDTO {
+  matricule: string;
+  personne: PersonneRef | null;
+  typeMembre: TypeMembreRef | null;
+  site: SiteRef | null;
+  dateInscription: string;
+  soldeDu: number;
+}

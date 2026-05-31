@@ -1,0 +1,84 @@
+<app-page-shell>
+  <main class="p-6 max-w-5xl mx-auto space-y-6">
+
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">
+        Bienvenue, {{ greeting() }}
+      </h1>
+      <p class="text-sm text-ink-400 mt-1">
+        Tableau de bord administrateur — gestion des sites, membres et créneaux.
+      </p>
+    </header>
+
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <app-kpi-card [label]="kpi1Label()" [value]="kpi1Value()" [icon]="kpi1Icon()" />
+      <app-kpi-card label="Matches actifs" [value]="kpi2Value()" icon="sports_tennis" />
+      <app-kpi-card label="Créneaux libres" [value]="kpi3Value()" icon="event_available" />
+      <app-kpi-card label="Paiements en attente" [value]="kpi4Value()" icon="schedule" />
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-padel-ink mb-3">Actions rapides</h2>
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+        <a routerLink="/admin/membres"
+           class="group bg-white rounded-xl border border-ink-100 p-4 hover:border-padel-blue/30 hover:shadow-sm transition-all">
+          <div class="text-padel-blue mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="text-sm font-medium text-padel-ink">Membres</div>
+          <div class="text-xs text-ink-400 mt-1">Liste des membres</div>
+        </a>
+
+        <a routerLink="/admin/creneaux"
+           class="group bg-white rounded-xl border border-ink-100 p-4 hover:border-padel-blue/30 hover:shadow-sm transition-all">
+          <div class="text-padel-blue mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4"/>
+              <path d="M8 2v4"/>
+              <path d="M3 10h18"/>
+            </svg>
+          </div>
+          <div class="text-sm font-medium text-padel-ink">Créneaux</div>
+          <div class="text-xs text-ink-400 mt-1">Générer les créneaux</div>
+        </a>
+
+        <a routerLink="/admin/horaires"
+           class="group bg-white rounded-xl border border-ink-100 p-4 hover:border-padel-blue/30 hover:shadow-sm transition-all">
+          <div class="text-padel-blue mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="text-sm font-medium text-padel-ink">Horaires</div>
+          <div class="text-xs text-ink-400 mt-1">Horaires &amp; fermetures</div>
+        </a>
+
+        <a routerLink="/admin/paiements"
+           class="group bg-white rounded-xl border border-ink-100 p-4 hover:border-padel-blue/30 hover:shadow-sm transition-all">
+          <div class="text-padel-blue mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+          </div>
+          <div class="text-sm font-medium text-padel-ink">Paiements</div>
+          <div class="text-xs text-ink-400 mt-1">Suivi des paiements</div>
+        </a>
+
+      </div>
+    </section>
+
+  </main>
+</app-page-shell>

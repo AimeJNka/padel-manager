@@ -54,6 +54,27 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/penalites/admin-penalites/admin-penalites').then(m => m.AdminPenalites),
   },
+  {
+    path: 'admin/membres',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Membres' },
+    loadComponent: () =>
+      import('./features/admin/liste-membres/liste-membres').then(m => m.ListeMembres),
+  },
+  {
+    path: 'admin/creneaux',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Génération créneaux' },
+    loadComponent: () =>
+      import('./features/admin/generation-creneaux/generation-creneaux').then(m => m.GenerationCreneaux),
+  },
+  {
+    path: 'admin/horaires',
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Horaires & Fermetures' },
+    loadComponent: () =>
+      import('./features/admin/gestion-horaires/gestion-horaires').then(m => m.GestionHoraires),
+  },
 
   {
     path: 'matchs',

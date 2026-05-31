@@ -42,6 +42,10 @@ export class PageShell {
     const role = this.auth.role();
     return role === 'GLOBAL' || role === 'SITE';
   });
+  protected readonly isAdmin = computed(() => {
+    const role = this.auth.role();
+    return role === 'ADMIN_GLOBAL' || role === 'ADMIN_SITE';
+  });
 
   logout(): void {
     this.auth.logout();

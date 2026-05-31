@@ -58,7 +58,7 @@ public class DisponibiliteService implements IDisponibiliteService {
     @Override
     public int genererCreneaux(Integer siteId, Integer annee, Authentication authentication) {
         siteAccessChecker.check(authentication, siteId);
-        return genererCreneauxInterne(siteId, annee, Collections.emptySet());
+        return genererCreneauxInterne(siteId, annee, Collections.<SlotKey>emptySet());
     }
 
     @Override
@@ -67,21 +67,25 @@ public class DisponibiliteService implements IDisponibiliteService {
         LocalDateTime yearStart = LocalDate.of(annee, 1, 1).atStartOfDay();
         LocalDateTime yearEnd = LocalDate.of(annee, 12, 31).atTime(23, 59, 59);
 
-        // Collect RESERVE slot keys before deleting, to avoid unique-constraint collisions on re-insert
-        Set<String> reservedKeys = disponibiliteRepo
+        // Dispos surviving the bulk DELETE = RESERVE rows + LIBRE rows still referenced by a match.
+        // Both must be excluded from re-generation to avoid UNIQUE-constraint collisions on re-insert.
+        Set<Integer> matchedDispoIds = disponibiliteRepo.findMatchedDispoIdsForSiteInRange(siteId, yearStart, yearEnd);
+
+        Set<SlotKey> excludedKeys = disponibiliteRepo
                 .findByTerrainSiteIdSiteAndDateHeureDebutBetween(siteId, yearStart, yearEnd)
                 .stream()
-                .filter(d -> DisponibiliteStatus.RESERVE.equals(d.getStatut()))
-                .map(d -> d.getTerrain().getIdTerrain() + "_" + d.getDateHeureDebut())
+                .filter(d -> DisponibiliteStatus.RESERVE.equals(d.getStatut())
+                          || matchedDispoIds.contains(d.getIdDispo()))
+                .map(d -> new SlotKey(d.getTerrain().getIdTerrain(), d.getDateHeureDebut()))
                 .collect(Collectors.toSet());
 
         disponibiliteRepo.deleteLibreByTerrainSiteAndYearRange(siteId, yearStart, yearEnd);
 
-        return genererCreneauxInterne(siteId, annee, reservedKeys);
+        return genererCreneauxInterne(siteId, annee, excludedKeys);
     }
 
     // Callers must call siteAccessChecker.check() before invoking this method.
-    private int genererCreneauxInterne(Integer siteId, Integer annee, Set<String> excludedKeys) {
+    private int genererCreneauxInterne(Integer siteId, Integer annee, Set<SlotKey> excludedKeys) {
         if (!siteRepo.existsById(siteId)) {
             throw new NotFoundException("Site introuvable : " + siteId);
         }
@@ -118,7 +122,7 @@ public class DisponibiliteService implements IDisponibiliteService {
                 LocalDateTime slotStart = date.atTime(horaire.getHeureOuverture());
                 LocalDateTime closeTime = date.atTime(horaire.getHeureFermeture());
                 while (!slotStart.plus(SLOT_DURATION).isAfter(closeTime)) {
-                    String key = terrain.getIdTerrain() + "_" + slotStart;
+                    SlotKey key = new SlotKey(terrain.getIdTerrain(), slotStart);
                     if (!excludedKeys.contains(key)) {
                         Disponibilite disponibilite = new Disponibilite();
                         disponibilite.setTerrain(terrain);
@@ -186,4 +190,8 @@ public class DisponibiliteService implements IDisponibiliteService {
         }
         return dto;
     }
+
+    // Typed key for excludedKeys matching during regeneration.
+    // LocalDateTime.equals compares fields directly — no toString format drift risk.
+    private record SlotKey(int terrainId, LocalDateTime time) {}
 }
