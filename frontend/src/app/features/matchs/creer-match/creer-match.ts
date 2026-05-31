@@ -192,17 +192,17 @@ export class CreerMatch {
     }
 
     this.snackBar.open(message, 'OK', { duration: 7000 });
-    this.router.navigate(['/matchs', idMatch]);
+    this.router.navigate(['/dashboard']);
   }
 
   private handleSuccessNoInvites(match: MatchPadelDTO, type: MatchType): void {
     this.isSubmitting.set(false);
     if (type === 'PRIVE') {
       this.snackBar.open('Match créé avec succès', 'OK', { duration: 4000 });
-      this.router.navigate(['/matchs', match.idMatch]);
+      this.router.navigate(['/dashboard']);
     } else {
       this.snackBar.open('Match créé et visible dans Matchs publics', 'OK', { duration: 4000 });
-      this.router.navigate(['/matchs']);
+      this.router.navigate(['/dashboard']);
     }
   }
 
