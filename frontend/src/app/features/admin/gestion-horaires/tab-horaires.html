@@ -1,0 +1,111 @@
+<div class="space-y-4">
+
+  @if (errorMessage()) {
+    <div class="bg-error/10 border border-error/30 rounded-lg p-3" role="alert">
+      <p class="text-error text-sm">{{ errorMessage() }}</p>
+    </div>
+  }
+
+  @if (successMessage()) {
+    <div class="bg-success/10 border border-success/30 rounded-lg p-3" role="status">
+      <p class="text-success text-sm">{{ successMessage() }}</p>
+    </div>
+  }
+
+  <div class="bg-white rounded-xl border border-ink-100 overflow-hidden">
+    @if (isLoading()) {
+      <p class="text-sm text-ink-400 p-6 text-center">Chargement…</p>
+    } @else if (horaires().length === 0) {
+      <p class="text-sm text-ink-500 p-6 text-center">Aucun horaire configuré pour ce site.</p>
+    } @else {
+      <table class="w-full text-sm">
+        <thead class="border-b border-ink-100 bg-padel-surface text-ink-500 text-xs uppercase tracking-wider">
+          <tr>
+            <th class="text-left font-medium py-3 px-4">Année</th>
+            <th class="text-left font-medium py-3 px-4">Heure ouverture</th>
+            <th class="text-left font-medium py-3 px-4">Heure fermeture</th>
+            <th class="text-right font-medium py-3 px-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-ink-100">
+          @for (h of horaires(); track h.idHoraire) {
+            <tr class="hover:bg-padel-surface/50 transition-colors">
+              <td class="py-3 px-4 text-padel-ink font-medium tabular-nums">{{ h.annee }}</td>
+              <td class="py-3 px-4 text-ink-500 tabular-nums">{{ h.heureOuverture.substring(0, 5) }}</td>
+              <td class="py-3 px-4 text-ink-500 tabular-nums">{{ h.heureFermeture.substring(0, 5) }}</td>
+              <td class="py-3 px-4 text-right">
+                <button type="button" (click)="startEdit(h)"
+                        class="text-xs text-padel-blue hover:underline font-medium">
+                  Modifier
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  @if (!isFormVisible()) {
+    <button type="button" (click)="startCreate()"
+            class="px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium hover:bg-padel-blue/90 transition-colors">
+      + Ajouter une année
+    </button>
+  } @else {
+    <div class="bg-white rounded-xl border border-ink-100 p-6 md:p-8">
+      <h3 class="text-base font-semibold text-padel-ink mb-4">
+        {{ mode() === 'create' ? 'Ajouter un horaire' : "Modifier l'horaire" }}
+      </h3>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4" novalidate>
+        <div class="grid sm:grid-cols-3 gap-4">
+
+          <div class="field">
+            <label for="annee" class="field-lbl">Année</label>
+            <select id="annee" formControlName="annee" class="input input-select">
+              <option [ngValue]="null">—</option>
+              @for (y of yearOptions; track y) {
+                <option [ngValue]="y">{{ y }}</option>
+              }
+            </select>
+            @if (form.controls.annee.touched && form.controls.annee.invalid) {
+              <p class="text-error text-xs mt-1">Sélectionnez une année.</p>
+            }
+          </div>
+
+          <div class="field">
+            <label for="heureOuverture" class="field-lbl">Heure ouverture</label>
+            <input id="heureOuverture" type="time" formControlName="heureOuverture" class="input" />
+            @if (form.controls.heureOuverture.touched && form.controls.heureOuverture.invalid) {
+              <p class="text-error text-xs mt-1">Requis.</p>
+            }
+          </div>
+
+          <div class="field">
+            <label for="heureFermeture" class="field-lbl">Heure fermeture</label>
+            <input id="heureFermeture" type="time" formControlName="heureFermeture" class="input" />
+            @if (form.controls.heureFermeture.touched && form.controls.heureFermeture.invalid) {
+              <p class="text-error text-xs mt-1">Requis.</p>
+            }
+          </div>
+
+        </div>
+
+        @if (form.errors?.['timeOrder'] && form.touched) {
+          <p class="text-error text-xs">L'heure de fermeture doit être après l'heure d'ouverture.</p>
+        }
+
+        <div class="flex gap-3 pt-2">
+          <button type="submit" [disabled]="isSubmitting()"
+                  class="px-4 py-2 rounded-lg bg-padel-blue text-white text-sm font-medium hover:bg-padel-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            {{ isSubmitting() ? 'Enregistrement…' : (mode() === 'create' ? 'Créer' : 'Mettre à jour') }}
+          </button>
+          <button type="button" (click)="cancel()"
+                  class="px-4 py-2 rounded-lg bg-white border border-ink-200 text-padel-ink text-sm font-medium hover:bg-ink-50 transition-colors">
+            Annuler
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

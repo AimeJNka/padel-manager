@@ -73,7 +73,7 @@ export const routes: Routes = [
     canActivate: [authGuard, roleGuard],
     data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Horaires & Fermetures' },
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+      import('./features/admin/gestion-horaires/gestion-horaires').then(m => m.GestionHoraires),
   },
 
   {
