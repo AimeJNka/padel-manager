@@ -48,6 +48,16 @@ export class Register implements OnInit {
   readonly showSiteField = signal(false);
   readonly registeredMatricule = signal<string | null>(null);
 
+  private readonly typeMeta: Record<string, string> = {
+    'Global': 'Réservez sur tous nos sites',
+    'Site':   'Rattaché à un site spécifique',
+    'Libre':  'Sans site attitré, accès libre',
+  };
+
+  protected typeDescription(libelle: string): string {
+    return this.typeMeta[libelle] ?? '';
+  }
+
   ngOnInit(): void {
     this.http.get<TypeMembre[]>('/api/types-membres').subscribe({
       next: data => this.types.set(data),
@@ -63,7 +73,7 @@ export class Register implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(idType => {
         const selectedType = this.types().find(t => t.idType === idType);
-        const isSite = selectedType?.libelle === 'SITE';
+        const isSite = selectedType?.libelle === 'Site';
         this.showSiteField.set(isSite);
 
         const idSiteCtrl = this.form.controls.idSite;

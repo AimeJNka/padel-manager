@@ -70,13 +70,50 @@
         </div>
 
         <div class="field">
-          <label class="field-lbl" for="idType">Type de membre</label>
-          <select id="idType" class="input input-select" formControlName="idType">
-            <option [ngValue]="null" disabled>Choisir un type...</option>
+          <span class="field-lbl">Type de membre</span>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             @for (t of types(); track t.idType) {
-              <option [ngValue]="t.idType">{{ t.libelle }}</option>
+              <label class="block cursor-pointer">
+                <input type="radio" formControlName="idType" [value]="t.idType" class="sr-only peer" />
+                <div class="h-full flex flex-col gap-2 border rounded-lg p-4 transition-colors
+                            border-ink-100 bg-white text-ink-500
+                            hover:border-ink-300
+                            peer-checked:border-padel-blue peer-checked:bg-padel-blue/5 peer-checked:text-padel-blue
+                            peer-focus-visible:ring-2 peer-focus-visible:ring-padel-blue peer-focus-visible:ring-offset-2">
+                  @switch (t.libelle) {
+                    @case ('Global') {
+                      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="1.75"
+                           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>
+                      </svg>
+                    }
+                    @case ('Site') {
+                      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="1.75"
+                           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="4" y="3" width="16" height="18" rx="1"/>
+                        <path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M10 21v-4h4v4"/>
+                      </svg>
+                    }
+                    @case ('Libre') {
+                      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" stroke-width="1.75"
+                           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4"/>
+                        <path d="M4 21v-1a8 8 0 0 1 16 0v1"/>
+                      </svg>
+                    }
+                  }
+                  <h4 class="text-sm font-semibold text-padel-ink">{{ t.libelle }}</h4>
+                  <p class="text-xs text-ink-500">{{ typeDescription(t.libelle) }}</p>
+                </div>
+              </label>
             }
-          </select>
+          </div>
+
           @if (form.controls.idType.touched && form.controls.idType.hasError('required')) {
             <p class="text-error text-xs mt-1">Le type est requis.</p>
           }
