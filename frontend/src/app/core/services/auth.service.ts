@@ -33,12 +33,14 @@ export class AuthService {
   readonly matricule = this._matricule.asReadonly();
 
   login(matricule: string, motDePasse: string): Observable<LoginResponse> {
+    this.clearSession();
     return this.http
       .post<LoginResponse>('/api/auth/login', { matricule, motDePasse })
       .pipe(tap(response => this.hydrateFromToken(response.accessToken, response.refreshToken)));
   }
 
   adminLogin(email: string, motDePasse: string): Observable<AdminLoginResponse> {
+    this.clearSession();
     return this.http
       .post<AdminLoginResponse>('/api/auth/admin/login', { email, motDePasse })
       .pipe(tap(response => this.hydrateFromToken(response.accessToken)));
@@ -53,6 +55,7 @@ export class AuthService {
     idType: number;
     idSite?: number;
   }): Observable<RegisterResponse> {
+    this.clearSession();
     const body: RegisterRequest = {
       nom: data.nom,
       prenom: data.prenom,
