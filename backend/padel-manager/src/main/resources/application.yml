@@ -29,3 +29,12 @@ jwt:
   expiration: ${JWT_EXPIRATION:900000}
   admin-expiration: ${JWT_ADMIN_EXPIRATION:7200000}
   refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+  api-docs:
+    path: /v3/api-docs
