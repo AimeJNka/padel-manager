@@ -1,0 +1,100 @@
+<app-page-shell>
+  <main class="p-6 max-w-3xl mx-auto space-y-6">
+
+    <header>
+      <h1 class="text-2xl font-semibold text-padel-ink">Génération des créneaux</h1>
+      <p class="text-sm text-ink-400 mt-1">
+        Générer ou régénérer les créneaux de disponibilité pour un site et une année.
+      </p>
+    </header>
+
+    @if (errorMessage()) {
+      <div class="bg-error/10 border border-error/30 rounded-lg p-3" role="alert">
+        <p class="text-error text-sm">{{ errorMessage() }}</p>
+      </div>
+    }
+
+    <div class="bg-white rounded-xl border border-ink-100 p-6 md:p-8 shadow-xs">
+      <form [formGroup]="form" class="space-y-5" novalidate>
+
+        <div class="field">
+          <label for="siteId" class="field-lbl">Site</label>
+          @if (isGlobal()) {
+            <select id="siteId" formControlName="siteId" class="input input-select">
+              <option [ngValue]="null">Sélectionnez un site</option>
+              @for (s of sites(); track s.idSite) {
+                <option [ngValue]="s.idSite">{{ s.nom }}</option>
+              }
+            </select>
+          } @else {
+            <input id="siteId" type="text" class="input" [value]="currentSiteName()" disabled />
+            <p class="text-xs text-ink-400 mt-1">
+              En tant qu'admin de site, vous gérez uniquement les créneaux de votre site.
+            </p>
+          }
+          @if (form.controls.siteId.touched && form.controls.siteId.invalid) {
+            <p class="text-error text-xs mt-1">Sélectionnez un site.</p>
+          }
+        </div>
+
+        <div class="field">
+          <label for="annee" class="field-lbl">Année civile</label>
+          <select id="annee" formControlName="annee" class="input input-select">
+            <option [ngValue]="null">Sélectionnez une année</option>
+            @for (y of yearOptions; track y) {
+              <option [ngValue]="y">{{ y }}</option>
+            }
+          </select>
+          @if (form.controls.annee.touched && form.controls.annee.invalid) {
+            <p class="text-error text-xs mt-1">Sélectionnez une année.</p>
+          }
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button type="button" (click)="onGenerer()"
+                  [disabled]="isSubmitting() || form.invalid"
+                  class="flex-1 px-4 py-2.5 rounded-lg bg-padel-blue text-white font-medium
+                         hover:bg-padel-blue/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            {{ isSubmitting() ? 'Génération en cours…' : 'Générer les créneaux' }}
+          </button>
+          <button type="button" (click)="onRegenerer()"
+                  [disabled]="isSubmitting() || form.invalid"
+                  class="flex-1 px-4 py-2.5 rounded-lg bg-white border border-ink-200 text-padel-ink font-medium
+                         hover:bg-ink-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            Régénérer (écrase les libres)
+          </button>
+        </div>
+
+        <p class="text-xs text-ink-400 leading-relaxed">
+          <strong class="text-padel-ink font-medium">Générer</strong> : crée les créneaux si aucun n'existe pour ce site et cette année.<br>
+          <strong class="text-padel-ink font-medium">Régénérer</strong> : recrée les créneaux LIBRES. Les créneaux déjà RÉSERVÉS sont préservés.
+        </p>
+      </form>
+    </div>
+
+    @if (result(); as r) {
+      <div class="bg-success/10 border border-success/30 rounded-xl p-5" role="status">
+        <div class="flex items-start gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               class="text-success shrink-0 mt-0.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <div class="flex-1">
+            <p class="text-sm font-medium text-padel-ink">
+              {{ r.count }} créneaux générés pour {{ r.siteName }} en {{ r.annee }}.
+            </p>
+            <p class="text-xs text-ink-500 mt-1">
+              Les créneaux sont maintenant disponibles pour réservation par les membres.
+            </p>
+            <button type="button" (click)="resetForm()"
+                    class="mt-3 text-xs text-padel-blue hover:underline font-medium">
+              Lancer une autre génération →
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+  </main>
+</app-page-shell>

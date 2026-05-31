@@ -64,9 +64,9 @@ export const routes: Routes = [
   {
     path: 'admin/creneaux',
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Créneaux' },
+    data: { roles: ['ADMIN_GLOBAL', 'ADMIN_SITE'], title: 'Génération créneaux' },
     loadComponent: () =>
-      import('./shared/components/coming-soon/coming-soon').then(m => m.ComingSoon),
+      import('./features/admin/generation-creneaux/generation-creneaux').then(m => m.GenerationCreneaux),
   },
   {
     path: 'admin/horaires',

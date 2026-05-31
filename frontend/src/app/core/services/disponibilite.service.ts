@@ -14,11 +14,21 @@ export interface DisponibiliteQueryParams {
   size?: number | null;
 }
 
+export interface GenererCreneauxRequest {
+  siteId: number;
+  annee: number;
+}
+
+export interface GenererCreneauxResponse {
+  generated: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DisponibiliteService {
 
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/disponibilites';
+  private readonly adminUrl = '/api/admin/creneaux';
 
   lister(params: DisponibiliteQueryParams = {}): Observable<PageResponse<DisponibiliteDTO>> {
     let httpParams = new HttpParams();
@@ -36,5 +46,13 @@ export class DisponibiliteService {
       }
     }
     return this.http.get<PageResponse<DisponibiliteDTO>>(this.baseUrl, { params: httpParams });
+  }
+
+  generer(request: GenererCreneauxRequest): Observable<GenererCreneauxResponse> {
+    return this.http.post<GenererCreneauxResponse>(`${this.adminUrl}/generer`, request);
+  }
+
+  regenerer(request: GenererCreneauxRequest): Observable<GenererCreneauxResponse> {
+    return this.http.post<GenererCreneauxResponse>(`${this.adminUrl}/regenerer`, request);
   }
 }
