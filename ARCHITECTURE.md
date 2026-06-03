@@ -150,8 +150,11 @@ si la base est vide ou en retard.
 | V12 | Seed de données démo (matchs, participations, paiements) |
 | V13 | Ajout du statut `EFFECTUE` |
 | V14 | Seed admin site 2 et données démo additionnelles |
+| V15 | `ALTER DEFAULT PRIVILEGES` — grants automatiques des futures tables à `app_user` (moindre privilège) |
 
-Le `membre.matricule` est une PK `VARCHAR` mutable.
+Flyway exécute ces migrations avec le rôle superuser (`FLYWAY_USER`), distinct
+du rôle runtime `app_user` (cf. §5). Le `membre.matricule` est une PK `VARCHAR`
+mutable.
 
 ### 3.7 Gestion des erreurs
 
@@ -285,9 +288,25 @@ Particularités notables :
   un index unique partiel sur `participation` (V11) qui empêche un même membre
   d'occuper deux fois la même place dans un match `PRIVE`/`PUBLIC` ouvert.
 
-L'application se connecte en tant que superuser `postgres`. Un utilisateur
-`app_user` à privilèges limités est défini en V2 mais n'est pas encore câblé
-au datasource ; objectif post-jury.
+Le principe de **moindre privilège** est appliqué via deux rôles PostgreSQL
+distincts (créés en V2) :
+
+- **`app_user`** — rôle de *runtime* utilisé par le pool de connexions de
+  l'application (`spring.datasource`). Il ne dispose que des droits DML
+  (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) sur les tables et `USAGE`/`SELECT`
+  sur les séquences ; il **ne peut pas** exécuter de DDL (`CREATE`, `ALTER`,
+  `DROP`).
+- **Superuser** (`FLYWAY_USER`, par défaut le rôle d'init du conteneur) —
+  utilisé exclusivement par Flyway (`spring.flyway.user`) pour exécuter les
+  migrations DDL au démarrage.
+
+Renseigner `spring.flyway.user/password` sans `spring.flyway.url` réutilise
+l'URL du datasource : le code applicatif tourne donc avec le minimum de droits
+tandis que les migrations conservent les privilèges nécessaires. La migration
+**V15** pose un `ALTER DEFAULT PRIVILEGES` afin que toute table créée par une
+future migration soit automatiquement accordée à `app_user` — supprimant le
+besoin de migrations de grants correctives (le motif des V6/V8). Un troisième
+rôle `app_readonly` (SELECT seul) est défini pour de futurs usages reporting.
 
 ## 6. Documentation API
 
@@ -322,6 +341,8 @@ affichée — réglages via le bloc `springdoc:` dans `application.yml`.
   un nouveau développement.
 - **Secrets** chargés via `spring-dotenv` depuis `backend/padel-manager/.env`
   (cf. `EXPLOITATION.md`). L'application **ne démarre pas** sans ce fichier.
+- **Moindre privilège DB** : le runtime se connecte via `app_user` (DML seul),
+  les migrations Flyway via un superuser (`FLYWAY_USER`). Cf. §5.
 - **Génération de créneaux** atomique à l'année : pas d'incrémental.
 - **Refresh token** réactif uniquement : pas de timer client.
 - **Tailwind v4 + Material M3** cohabitent en restaurant les tokens Material

@@ -17,6 +17,11 @@ créneaux, tableaux de bord administrateurs. Projet académique EPHEC, PDW
 | API doc    | Springdoc OpenAPI / Swagger UI                                |
 | Infra      | Docker Compose + GitHub Actions                               |
 
+> Sécurité base de données — **moindre privilège** : le runtime se connecte via
+> un rôle PostgreSQL à droits DML seulement (`app_user`), tandis que les
+> migrations Flyway utilisent un rôle superuser distinct (`FLYWAY_USER`).
+> Détails dans [ARCHITECTURE.md](ARCHITECTURE.md) (§5).
+
 ## Démarrage rapide
 
 ```bash
