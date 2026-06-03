@@ -18,6 +18,8 @@ spring:
 
   flyway:
     enabled: true
+    user: ${FLYWAY_USER}          # superuser — runs DDL migrations
+    password: ${FLYWAY_PASSWORD}
     locations: classpath:db/migration
     baseline-on-migrate: true
 

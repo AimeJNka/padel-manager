@@ -40,8 +40,10 @@ $content = Get-Content $envExample -Raw
 $content = $content -replace '(?m)^POSTGRES_USER=.*$',     'POSTGRES_USER=padel_user'
 $content = $content -replace '(?m)^POSTGRES_PASSWORD=.*$', 'POSTGRES_PASSWORD=padel_dev_password'
 $content = $content -replace '(?m)^POSTGRES_DB=.*$',       'POSTGRES_DB=padel_manager'
-$content = $content -replace '(?m)^DB_USERNAME=.*$',       'DB_USERNAME=padel_user'
-$content = $content -replace '(?m)^DB_PASSWORD=.*$',       'DB_PASSWORD=padel_dev_password'
+$content = $content -replace '(?m)^DB_USERNAME=.*$',       'DB_USERNAME=app_user'
+$content = $content -replace '(?m)^DB_PASSWORD=.*$',       'DB_PASSWORD=padel_password'
+$content = $content -replace '(?m)^FLYWAY_USER=.*$',       'FLYWAY_USER=padel_user'
+$content = $content -replace '(?m)^FLYWAY_PASSWORD=.*$',   'FLYWAY_PASSWORD=padel_dev_password'
 $content = $content -replace '(?m)^JWT_SECRET=.*$',        "JWT_SECRET=$jwtSecret"
 
 Set-Content -Path $envFile -Value $content -NoNewline
