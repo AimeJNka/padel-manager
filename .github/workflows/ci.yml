@@ -45,6 +45,8 @@ jobs:
     env:
       DB_USERNAME: test
       DB_PASSWORD: test
+      FLYWAY_USER: test
+      FLYWAY_PASSWORD: test
       JWT_SECRET: ci-only-fake-secret-not-used-in-production-32ch
 
     steps:
