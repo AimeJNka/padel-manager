@@ -33,3 +33,7 @@ AI_team_work/
 !.env.example
 !**/.env.example
 .playwright-mcp/
+
+# IDE / editor metadata
+.idea/
+*.iml
