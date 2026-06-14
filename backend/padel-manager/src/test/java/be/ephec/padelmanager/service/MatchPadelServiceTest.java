@@ -655,7 +655,7 @@ class MatchPadelServiceTest {
 
     @Test
     void ajouterJoueur_joueurHasActivePenalty_succeeds() {
-        // Penalty no longer blocks invitation — only creation is gated (ADR-0004)
+        // Penalty no longer blocks invitation — only creation is gated
         Membre org    = buildMembre(ORGANISATEUR, null, null, null);
         MatchPadel match = buildMatch(ID_MATCH, MatchType.PRIVE, MatchStatus.EN_ATTENTE, org, null);
         Membre joueur = buildMembre(JOUEUR_MATRICULE, null, null, null);
@@ -774,7 +774,7 @@ class MatchPadelServiceTest {
 
     @Test
     void sInscrireMatchPublic_membreHasActivePenalty_succeeds() {
-        // Penalty no longer blocks public match inscription — only creation is gated (ADR-0004)
+        // Penalty no longer blocks public match inscription — only creation is gated
         Site site = buildSite(SITE_ID);
         Terrain terrain = buildTerrain(TERRAIN_ID, site);
         Disponibilite dispo = buildDispo(DISPO_ID, DisponibiliteStatus.LIBRE,

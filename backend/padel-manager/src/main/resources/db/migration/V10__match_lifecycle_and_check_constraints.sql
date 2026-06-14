@@ -1,8 +1,6 @@
 -- V10__match_lifecycle_and_check_constraints.sql
 -- Purpose: enforce valid statut/type values on match_padel and participation,
 --          add the DEMARRE lifecycle status, and create scheduler-oriented indexes.
---
--- Rationale: see ADR-0002 (docs/adr/0002-architecture-scheduler-traitements-automatiques.md)
 
 -- 1) Enforce valid statut values for match_padel.
 --    DEMARRE is the idempotency marker written by Job 3 (solde organisateur)

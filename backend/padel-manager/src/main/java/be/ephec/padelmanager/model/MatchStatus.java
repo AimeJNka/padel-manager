@@ -2,8 +2,7 @@ package be.ephec.padelmanager.model;
 
 /**
  * Valid statut values for the {@code match_padel} table.
- * Static constants are used instead of a JPA {@code @Enumerated} enum —
- * see ADR-0002 for the accepted trade-off.
+ * Static constants are used instead of a JPA {@code @Enumerated} enum.
  */
 public final class MatchStatus {
 
