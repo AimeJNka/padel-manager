@@ -37,3 +37,7 @@ AI_team_work/
 # IDE / editor metadata
 .idea/
 *.iml
+
+# Local study material (jury prep)
+etude/
+.DS_Store
